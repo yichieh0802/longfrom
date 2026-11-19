@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ILLIT 數據誌</title>
+<meta name="description" content="ILLIT 아일릿 捲動式數據故事：成員、出道曲 Magnetic 的紀錄，以及 Billboard 200 名次一路爬升到前十。">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<style>
+  :root {
+    --bg: #fff8fb; --panel: #ffffff; --fg: #2a2230; --muted: #6f6478; --line: #eadde6;
+    --pink: #e8578f; --lilac: #8b6fd6; --sky: #4f9fd8; --soft: #fbe3ee; --grid: #efe4ea;
+    --serif: "Noto Serif TC", "PMingLiU", Georgia, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17131c; --panel: #211b28; --fg: #f3edf6; --muted: #b3a8bd; --line: #382f42;
+      --pink: #ff7fad; --lilac: #ad95f2; --sky: #79bdf0; --soft: #3a2433; --grid: #2e2637; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17131c; --panel: #211b28; --fg: #f3edf6; --muted: #b3a8bd; --line: #382f42;
+    --pink: #ff7fad; --lilac: #ad95f2; --sky: #79bdf0; --soft: #3a2433; --grid: #2e2637; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); line-height: 1.7; overflow-x: hidden; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+  .eyebrow { font-size: .8rem; letter-spacing: .18em; text-transform: uppercase; color: var(--pink); font-weight: 700; }
+  h1, h2, h3 { font-family: var(--serif); line-height: 1.25; margin: 0; }
+  h2 { font-size: clamp(1.6rem, 4vw, 2.4rem); margin: .3em 0 .6em; }
+  p { margin: 0 0 1em; }
+  .muted { color: var(--muted); }
+
+  /* progress bar */
+  #progress { position: fixed; top: 0; left: 0; height: 4px; width: 0; z-index: 10;
+    background: linear-gradient(90deg, var(--pink), var(--lilac), var(--sky)); }
+
+  /* hero */
+  .hero { min-height: 100svh; display: grid; place-items: center; text-align: center; position: relative; overflow: hidden; }
+  .hero::before { content: ""; position: absolute; inset: -20%;
+    background: radial-gradient(circle at 25% 30%, color-mix(in srgb, var(--pink) 22%, transparent), transparent 45%),
+                radial-gradient(circle at 75% 65%, color-mix(in srgb, var(--lilac) 22%, transparent), transparent 45%);
+    animation: drift 18s ease-in-out infinite alternate; }
+  @keyframes drift { to { transform: translate(4%, -3%) scale(1.05); } }
+  .hero > div { position: relative; }
+  .hero h1 { font-size: clamp(3.4rem, 15vw, 9rem); letter-spacing: .04em;
+    background: linear-gradient(120deg, var(--pink), var(--lilac) 55%, var(--sky)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero .kr { font-size: 1.3rem; color: var(--muted); letter-spacing: .3em; }
+  .hero .lede { max-width: 34em; margin: 1.4em auto 0; font-size: 1.1rem; }
+  .bignum { font-family: var(--serif); font-size: clamp(2.6rem, 8vw, 4.4rem); font-weight: 700; color: var(--pink); line-height: 1; }
+  .scroll-hint { margin-top: 3em; font-size: .85rem; color: var(--muted); animation: bob 1.8s ease-in-out infinite; }
+  @keyframes bob { 50% { transform: translateY(6px); } }
+
+  section { padding: 14vh 0; }
+
+  /* members */
+  .members { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-top: 32px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 20px; position: relative; overflow: hidden; }
+  .card::after { content: ""; position: absolute; right: -30px; top: -30px; width: 90px; height: 90px; border-radius: 50%; background: var(--c); opacity: .18; }
+  .card .name { font-family: var(--serif); font-size: 1.5rem; font-weight: 700; }
+  .card .hangul { color: var(--muted); font-size: .9rem; }
+  .card dl { margin: 12px 0 0; font-size: .88rem; display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; }
+  .card dt { color: var(--muted); }
+  .card dd { margin: 0; }
+  #ageChart { margin-top: 40px; }
+
+  /* scrolly */
+  .scrolly { display: grid; grid-template-columns: 1fr 1.25fr; gap: 40px; position: relative; }
+  .steps { padding: 30vh 0 40vh; }
+  .step { min-height: 70vh; display: flex; align-items: center; }
+  .step > div { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px;
+    opacity: .35; transition: opacity .4s, transform .4s, border-color .4s; transform: translateY(10px); }
+  .step.active > div { opacity: 1; transform: none; border-color: var(--pink); }
+  .step h3 { font-size: 1.25rem; margin-bottom: .4em; }
+  .step .tag { display: inline-block; font-size: .75rem; padding: 2px 10px; border-radius: 99px; background: var(--soft); color: var(--pink); font-weight: 700; margin-bottom: 8px; }
+  .sticky { position: sticky; top: 0; height: 100svh; display: flex; align-items: center; }
+  .sticky .chartbox { width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 16px; }
+  .chartbox .ttl { font-weight: 700; font-size: .95rem; }
+  .chartbox .sub { font-size: .8rem; color: var(--muted); }
+
+  /* stats */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 32px 0; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 22px; }
+  .stat .bignum { font-size: clamp(2.2rem, 6vw, 3.2rem); }
+  .stat .lbl { margin-top: 8px; font-size: .92rem; }
+
+  /* timeline */
+  .timeline { position: relative; margin-top: 40px; padding-left: 28px; }
+  .timeline::before { content: ""; position: absolute; left: 8px; top: 0; bottom: 0; width: 2px; background: var(--line); }
+  .timeline .fill { position: absolute; left: 8px; top: 0; width: 2px; height: 0; background: linear-gradient(var(--pink), var(--lilac)); }
+  .ev { position: relative; padding: 0 0 34px; opacity: 0; transform: translateX(-12px); transition: opacity .6s, transform .6s; }
+  .ev.in { opacity: 1; transform: none; }
+  .ev::before { content: ""; position: absolute; left: -26px; top: 7px; width: 14px; height: 14px; border-radius: 50%; background: var(--bg); border: 3px solid var(--k, var(--pink)); }
+  .ev time { font-size: .82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .ev h3 { font-size: 1.15rem; }
+  .ev .kind { font-size: .72rem; font-weight: 700; color: var(--k, var(--pink)); margin-left: 6px; letter-spacing: .05em; }
+  .ev p { font-size: .92rem; margin: .2em 0 0; color: var(--muted); }
+  .era { position: relative; margin: 14px 0 6px; max-width: 520px; background: #fff; padding: 10px 10px 12px; border-radius: 6px;
+    box-shadow: 0 10px 24px rgba(120, 60, 100, .16); transform: rotate(var(--tilt, -1.5deg)); transition: transform .4s; }
+  .era:hover { transform: rotate(0) scale(1.02); }
+  .era img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; object-position: center 30%; border-radius: 3px;
+    background: linear-gradient(135deg, #ffe1ec, #e9e0ff 60%, #dff0ff); }
+  .era figcaption { margin-top: 8px; font-size: .78rem; color: #6f6478; text-align: center; line-height: 1.5; }
+  .era figcaption a { color: #9a8fa3; font-size: .7rem; }
+  .era .tape { top: -10px; width: 80px; height: 22px; }
+
+  .reveal { opacity: 0; transform: translateY(24px); transition: opacity .8s, transform .8s; }
+  .reveal.in { opacity: 1; transform: none; }
+
+  footer { padding: 60px 0 80px; font-size: .82rem; color: var(--muted); border-top: 1px solid var(--line); }
+  footer a { color: var(--muted); }
+  footer li { margin-bottom: 4px; }
+
+  svg text { fill: var(--muted); font-family: var(--sans); }
+  .axis path, .axis line { stroke: var(--grid); }
+  .sticker text, .face text { fill: inherit; }
+
+  /* photos */
+  header.hero, main { overflow-x: clip; }
+  section { position: relative; }
+  .polaroid { position: relative; margin: 2.2em auto 0; width: min(440px, 86vw); background: #fff; padding: 12px 12px 44px;
+    border-radius: 6px; box-shadow: 0 12px 30px rgba(120, 60, 100, .18); transform: rotate(-2.5deg); transition: transform .4s; }
+  .polaroid:hover { transform: rotate(0) scale(1.02); }
+  .photo-credit { z-index: 1; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
+  .card .photo-img { object-position: center 15%; }
+  .polaroid .frame { position: relative; aspect-ratio: 1737 / 803; border-radius: 3px; overflow: hidden;
+    background: linear-gradient(135deg, #ffe1ec, #e9e0ff 60%, #dff0ff); }
+  .polaroid figcaption { position: absolute; left: 0; right: 0; bottom: 10px; text-align: center; color: #6f6478;
+    font-family: "Segoe Print", "Comic Sans MS", var(--sans); font-size: 1rem; }
+  .tape { position: absolute; top: -12px; left: 50%; width: 96px; height: 26px; transform: translateX(-50%) rotate(3deg);
+    background: repeating-linear-gradient(45deg, rgba(255, 170, 200, .75) 0 8px, rgba(255, 210, 225, .75) 8px 16px); z-index: 2; }
+  .photo-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .ph-fallback { position: absolute; inset: 0; display: grid; place-items: center; }
+  .ph-hint { position: absolute; bottom: 6px; right: 8px; font-size: .68rem; color: #9a8fa3; }
+  .card .photo { position: relative; width: 100%; aspect-ratio: 4 / 5; border-radius: 14px; overflow: hidden; margin-bottom: 14px;
+    background: color-mix(in srgb, var(--c) 18%, var(--panel)); }
+  .card .photo .ph-fallback svg { width: 72%; height: 72%; }
+  .card .mini { position: absolute; top: 10px; right: 10px; width: 40px; z-index: 2; transform: rotate(var(--r, 12deg)); transition: transform .3s; }
+  .card:hover .mini { transform: rotate(calc(var(--r, 12deg) * -1)) scale(1.2); }
+  .card { transition: transform .3s; }
+  .card:hover { transform: translateY(-4px) rotate(-.6deg); }
+
+  /* stickers */
+  .sticker { position: absolute; z-index: 0; pointer-events: none; filter: drop-shadow(0 4px 6px rgba(120, 60, 100, .18)); }
+  .sticker > svg { width: 100%; height: auto; display: block; animation: float 5s ease-in-out infinite; animation-delay: var(--d, 0s); }
+  @keyframes float { 0%, 100% { transform: rotate(var(--r, 0deg)) translateY(0); } 50% { transform: rotate(calc(var(--r, 0deg) + 8deg)) translateY(-10px); } }
+  .wrap, .scrolly { position: relative; z-index: 1; }
+
+  @media (max-width: 760px) {
+    .scrolly { grid-template-columns: 1fr; }
+    .sticky { order: -1; height: auto; top: 0; z-index: 2; padding: 8px 0; background: var(--bg); }
+    .steps { padding: 6vh 0 20vh; }
+    .step { min-height: 55vh; }
+    .sticker { transform: scale(.6); opacity: .8; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .hero::before, .scroll-hint, .sticker > svg { animation: none; }
+    .reveal, .ev, .step > div { transition: none; opacity: 1; transform: none; }
+  }
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<!-- cute sticker sprites (original drawings) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g id="eyes"><circle cx="25" cy="34" r="2.6" fill="#3a2a3a"/><circle cx="39" cy="34" r="2.6" fill="#3a2a3a"/>
+      <ellipse cx="20" cy="40" rx="3.6" ry="2.2" fill="#ff8fb4" opacity=".7"/><ellipse cx="44" cy="40" rx="3.6" ry="2.2" fill="#ff8fb4" opacity=".7"/>
+      <path d="M29 39 q3 3 6 0" stroke="#3a2a3a" stroke-width="2" fill="none" stroke-linecap="round"/></g>
+    <symbol id="s-heart" viewBox="0 0 64 64"><path d="M32 56C10 40 4 28 8 18 12 8 26 6 32 18 38 6 52 8 56 18 60 28 54 40 32 56Z" fill="#ff8db5" stroke="#fff" stroke-width="4" stroke-linejoin="round"/>
+      <ellipse cx="18" cy="20" rx="5" ry="3" fill="#fff" opacity=".6" transform="rotate(-30 18 20)"/><use href="#eyes" transform="translate(0 -4)"/></symbol>
+    <symbol id="s-star" viewBox="0 0 64 64"><path d="M32 4l8 17 18 2-13 13 4 19-17-9-17 9 4-19L6 23l18-2Z" fill="#ffd66e" stroke="#fff" stroke-width="4" stroke-linejoin="round"/><use href="#eyes" transform="translate(0 0)"/></symbol>
+    <symbol id="s-sparkle" viewBox="0 0 64 64"><path d="M32 4C35 24 40 29 60 32 40 35 35 40 32 60 29 40 24 35 4 32 24 29 29 24 32 4Z" fill="#b9a2ff" stroke="#fff" stroke-width="3.5" stroke-linejoin="round"/></symbol>
+    <symbol id="s-bow" viewBox="0 0 64 64"><g stroke="#fff" stroke-width="3.5" stroke-linejoin="round">
+      <path d="M28 34l-8 22 7-3 3 6 4-24Z" fill="#ff9cbf"/><path d="M36 34l8 22-7-3-3 6-4-24Z" fill="#ff9cbf"/>
+      <path d="M32 30C20 12 4 16 6 30 4 44 20 48 32 30Z" fill="#ffb3cf"/><path d="M32 30C44 12 60 16 58 30 60 44 44 48 32 30Z" fill="#ffb3cf"/>
+      <circle cx="32" cy="30" r="7" fill="#ff7aa8"/></g></symbol>
+    <symbol id="s-cloud" viewBox="0 0 64 64"><path d="M16 48a10 10 0 0 1 0-20 14 14 0 0 1 27-6 11 11 0 0 1 6 26Z" fill="#dff0ff" stroke="#fff" stroke-width="4" stroke-linejoin="round"/><use href="#eyes" transform="translate(1 2)"/></symbol>
+    <symbol id="s-cat" viewBox="0 0 64 64"><g stroke="#fff" stroke-width="4" stroke-linejoin="round"><path d="M10 30L12 8l14 10h12L52 8l2 22c0 14-10 24-22 24S10 44 10 30Z" fill="#ffe3c4"/></g>
+      <path d="M15 14l2 8 5-4Z M49 14l-2 8-5-4Z" fill="#ffb3cf"/><use href="#eyes" transform="translate(0 -2)"/>
+      <path d="M6 36h10M6 41l10-2M58 36H48M58 41l-10-2" stroke="#c9a88a" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="s-music" viewBox="0 0 64 64"><g stroke="#fff" stroke-width="3.5" stroke-linejoin="round"><path d="M24 14l28-6v34" fill="none" stroke="#fff" stroke-width="9"/><path d="M24 14l28-6v34" fill="none" stroke="#7fbdf0" stroke-width="5"/>
+      <path d="M24 14v34" stroke="#fff" stroke-width="9"/><path d="M24 14v34" stroke="#7fbdf0" stroke-width="5"/>
+      <ellipse cx="17" cy="48" rx="9" ry="7" fill="#7fbdf0"/><ellipse cx="45" cy="42" rx="9" ry="7" fill="#7fbdf0"/></g></symbol>
+  </defs>
+</svg>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">A data story</div>
+    <h1>ILLIT</h1>
+    <div class="kr">아일릿 · 2024 —</div>
+    <p class="lede">從出道曲第一週就打進 Billboard Hot 100，到第五張迷你專輯拿下 Billboard 200 第 6 名——<br>
+      <span class="bignum" id="daysNum">—</span><br>
+      <span class="muted">從出道日到首次 Billboard 200 前十（2026-11-14 榜單）所經過的天數</span></p>
+    <figure class="polaroid">
+      <div class="tape"></div>
+      <div class="frame">
+        <div class="ph-fallback" id="groupFallback"></div>
+        <img class="photo-img" src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/241120_ILLIT.jpg/960px-241120_ILLIT.jpg" alt="ILLIT 五位成員合照（2024.11.20）" onerror="this.remove()">
+        <span class="ph-hint photo-credit">Photo: K-POPIT / CC BY 3.0</span>
+      </div>
+      <figcaption>ILLIT ♡ GLLIT</figcaption>
+    </figure>
+    <div class="scroll-hint">往下捲動 ↓</div>
+  </div>
+  <div class="sticker" style="top:12%;left:6%;width:70px;--r:-14deg"><svg viewBox="0 0 64 64"><use href="#s-heart"/></svg></div>
+  <div class="sticker" style="top:18%;right:8%;width:64px;--r:10deg;--d:-1.2s"><svg viewBox="0 0 64 64"><use href="#s-star"/></svg></div>
+  <div class="sticker" style="top:46%;left:12%;width:40px;--d:-2s"><svg viewBox="0 0 64 64"><use href="#s-sparkle"/></svg></div>
+  <div class="sticker" style="bottom:22%;right:12%;width:76px;--r:-8deg;--d:-.6s"><svg viewBox="0 0 64 64"><use href="#s-bow"/></svg></div>
+  <div class="sticker" style="bottom:12%;left:8%;width:80px;--d:-3s"><svg viewBox="0 0 64 64"><use href="#s-cloud"/></svg></div>
+  <div class="sticker" style="top:55%;right:5%;width:34px;--d:-1.6s"><svg viewBox="0 0 64 64"><use href="#s-sparkle"/></svg></div>
+</header>
+
+<main>
+  <!-- members -->
+  <section class="wrap">
+    <div class="reveal">
+      <div class="eyebrow">01 · Members</div>
+      <h2>五個人，平均出道年齡不到 19 歲</h2>
+      <p class="muted">ILLIT 由 HYBE 與 CJ ENM 合資的 BELIFT LAB 透過 2023 年選秀節目《R U Next?》組成，成員來自韓國與日本。粉絲名為 GLLIT。</p>
+    </div>
+    <div class="members" id="members"></div>
+    <div class="reveal" id="ageChart"></div>
+  </section>
+
+  <!-- magnetic -->
+  <section class="wrap">
+    <div class="reveal">
+      <div class="eyebrow">02 · “Magnetic”</div>
+      <h2>一首出道曲改寫的紀錄</h2>
+      <p class="muted">2024 年 3 月 25 日發行的〈Magnetic〉，成為第一首登上 Billboard Hot 100 的 K-pop 團體出道曲。</p>
+    </div>
+    <div class="stats reveal">
+      <div class="stat"><div class="bignum" data-count="91" data-prefix="#">#91</div><div class="lbl">Billboard Hot 100 首登名次<br><span class="muted">K-pop 出道曲首例</span></div></div>
+      <div class="stat"><div class="bignum" data-count="6" data-prefix="#">#6</div><div class="lbl">Billboard Global 200 最高名次</div></div>
+      <div class="stat"><div class="bignum" data-count="56">56</div><div class="lbl">天，Spotify 串流破 2 億<br><span class="muted">K-pop 女團出道曲最快</span></div></div>
+      <div class="stat"><div class="bignum" data-count="275">275</div><div class="lbl">天，Spotify 串流破 5 億</div></div>
+    </div>
+    <div class="reveal chartbox" style="background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:16px">
+      <div class="ttl">〈Magnetic〉Spotify 累積串流里程碑</div>
+      <div class="sub">橫軸：發行後天數；縱軸：累積串流（億次）</div>
+      <div id="streamChart"></div>
+    </div>
+  </section>
+
+  <!-- scrolly billboard 200 -->
+  <section>
+    <div class="wrap reveal">
+      <div class="eyebrow">03 · Billboard 200</div>
+      <h2>從第 171 名到第 6 名</h2>
+      <p class="muted">五張進榜專輯的 Billboard 200 最高名次。往下捲動，看名次怎麼一路往上爬。</p>
+    </div>
+    <div class="wrap scrolly">
+      <div class="steps" id="steps">
+        <div class="step" data-i="0"><div><span class="tag">2024.03 · 1st mini</span><h3>SUPER REAL ME — #93</h3><p>出道專輯就擠進 Billboard 200，主打〈Magnetic〉同時在 Hot 100 與 Global 200 開花。</p></div></div>
+        <div class="step" data-i="1"><div><span class="tag">2024.10 · 2nd mini</span><h3>I'LL LIKE YOU — #94</h3><p>主打〈Cherish (My Love)〉。第二張迷你專輯維持在榜單後段，穩住了美國市場的存在感。</p></div></div>
+        <div class="step" data-i="2"><div><span class="tag">2025.06 · 3rd mini</span><h3>bomb — #171</h3><p>收錄〈Do the Dance〉。在韓國 Circle 專輯榜拿下冠軍，但 Billboard 200 名次是五張中最低的一次。</p></div></div>
+        <div class="step" data-i="3"><div><span class="tag">2026.05 · 4th mini</span><h3>MAMIHLAPINATAPAI — #26</h3><p>首次闖進 Billboard 200 前 50，並登上 World Albums 榜首。一口氣比前作進步 145 名。</p></div></div>
+        <div class="step" data-i="4"><div><span class="tag">2026.10 · 5th mini</span><h3>BREAK EVEN — #6</h3><p>首張 Billboard 200 前十專輯，同時拿下 Top Album Sales 冠軍。ILLIT 成為少數擁有 Billboard 200 前十專輯的 K-pop 女團之一。</p></div></div>
+      </div>
+      <div class="sticky">
+        <div class="chartbox">
+          <div class="ttl">Billboard 200 最高名次</div>
+          <div class="sub">名次越上方越好（第 1 名在頂端）</div>
+          <div id="b200"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- timeline -->
+  <section class="wrap">
+    <div class="reveal">
+      <div class="eyebrow">04 · Timeline</div>
+      <h2>ILLIT 大事記</h2>
+    </div>
+    <div class="timeline" id="timeline"><div class="fill" id="tlFill"></div></div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><strong>資料來源</strong>（截至 2026 年 11 月；名次為各作品最高名次）</p>
+    <ul>
+      <li><a href="https://www.soompi.com/article/1885116wpp/illit-debuts-at-no-1-on-billboard-top-album-sales-chart-no-6-on-billboard-200-with-break-even">Soompi：BREAK EVEN 首登 Billboard 200 第 6 名、歷張專輯名次</a></li>
+      <li><a href="https://straitstimes.com.sg/life/entertainment/rookie-girl-group-illit-are-first-k-pop-act-to-chart-on-billboard-s-hot-100-with-debut-single">The Straits Times：Magnetic 登上 Hot 100</a></li>
+      <li><a href="https://www.pinkvilla.com/entertainment/illits-magnetic-climbs-to-no-6-on-this-weeks-billboards-global-200-and-no-3-on-excl-us-top-10-charts-1295958">Pinkvilla：Magnetic 在 Global 200 升至第 6 名</a></li>
+      <li><a href="https://www.asiae.co.kr/en/article/2024122714513559377">Asia Economy：Magnetic Spotify 串流 5 億（275 天）</a></li>
+      <li><a href="https://www.koreaherald.com/view.php?ud=20240919050539">The Korea Herald：Magnetic Spotify 4 億</a></li>
+      <li><a href="https://wikiwand.com/en/articles/Illit_(group)">Wikipedia：ILLIT 成員與作品年表</a></li>
+    </ul>
+    <p><strong>照片來源</strong>（Wikimedia Commons，CC BY 3.0，攝影：K-POPIT 케이팝잇）</p>
+    <ul>
+      <li><a href="https://commons.wikimedia.org/wiki/File:241120_ILLIT.jpg">團體照 241120 ILLIT</a></li>
+      <li>成員照：<a href="https://commons.wikimedia.org/wiki/File:ILLIT_Yunah_at_Canada_Goose_Photo_Call.png">Yunah</a> ·
+        <a href="https://commons.wikimedia.org/wiki/File:ILLIT_Minju_at_Canada_Goose_Photo_Call.png">Minju</a> ·
+        <a href="https://commons.wikimedia.org/wiki/File:ILLIT_Moka_at_Canada_Goose_Photo_Call.png">Moka</a> ·
+        <a href="https://commons.wikimedia.org/wiki/File:ILLIT_Wonhee_at_Canada_Goose_Photo_Call.png">Wonhee</a> ·
+        <a href="https://commons.wikimedia.org/wiki/File:ILLIT_Iroha_at_Canada_Goose_Photo_Call.png">Iroha</a>（裁切顯示）</li>
+      <li>大事記各時期合照：攝影者與授權（CC BY 3.0 / CC BY 4.0）標註於每張照片下方，點擊可連到 Wikimedia Commons 原檔頁面。</li>
+    </ul>
+    <p>非官方粉絲向數據頁，資料整理自公開報導；部分日期僅標示到月份。</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+  /* ---------- data ---------- */
+  const DEBUT = new Date('2024-03-25');
+  const members = [
+    { name: 'YUNAH', hangul: '노윤아', birth: '2004-01-15', nat: '韓國', c: 'var(--pink)' },
+    { name: 'MINJU', hangul: '박민주', birth: '2004-05-11', nat: '韓國', c: 'var(--lilac)' },
+    { name: 'MOKA', hangul: '모카', birth: '2004-10-08', nat: '日本', c: 'var(--sky)' },
+    { name: 'WONHEE', hangul: '이원희', birth: '2007-06-26', nat: '韓國', c: 'var(--pink)' },
+    { name: 'IROHA', hangul: '이로하', birth: '2008-02-04', nat: '日本', c: 'var(--lilac)' },
+  ];
+  const b200 = [
+    { album: 'SUPER REAL ME', short: 'SUPER REAL ME', date: '2024.03', rank: 93 },
+    { album: "I'LL LIKE YOU", short: "I'LL LIKE YOU", date: '2024.10', rank: 94 },
+    { album: 'bomb', short: 'bomb', date: '2025.06', rank: 171 },
+    { album: 'MAMIHLAPINATAPAI', short: 'MAMIHLA…', date: '2026.05', rank: 26 },
+    { album: 'BREAK EVEN', short: 'BREAK EVEN', date: '2026.10', rank: 6 },
+  ];
+  const streams = [
+    { day: 0, v: 0 }, { day: 56, v: 2, label: '2 億 · 56 天' }, { day: 275, v: 5, label: '5 億 · 275 天' },
+  ];
+  // era group photos from Wikimedia Commons (credits rendered under each photo + in footer)
+  const TH = 'https://upload.wikimedia.org/wikipedia/commons/thumb/';
+  const CP = 'https://commons.wikimedia.org/wiki/File:';
+  const eraImg = {
+    predebut: { src: TH + 'd/db/%EC%95%84%EC%9D%BC%EB%A6%BF_%28I%27LL-IT%29_%EC%9D%B8%EC%B2%9C%EA%B3%B5%ED%95%AD_%EC%B6%9C%EA%B5%AD_%281%29.jpg/960px-%EC%95%84%EC%9D%BC%EB%A6%BF_%28I%27LL-IT%29_%EC%9D%B8%EC%B2%9C%EA%B3%B5%ED%95%AD_%EC%B6%9C%EA%B5%AD_%281%29.jpg',
+      page: CP + '%EC%95%84%EC%9D%BC%EB%A6%BF_(I%27LL-IT)_%EC%9D%B8%EC%B2%9C%EA%B3%B5%ED%95%AD_%EC%B6%9C%EA%B5%AD_(1).jpg', when: '2024.02.27 出道前・機場', by: '티비텐 TV10', lic: 'CC BY 3.0' },
+    magnetic: { src: TH + '7/71/ILLIT_Music_Bank_20240329.jpg/960px-ILLIT_Music_Bank_20240329.jpg',
+      page: CP + 'ILLIT_Music_Bank_20240329.jpg', when: '2024.03.29 Magnetic 打歌期・Music Bank', by: 'K-POPIT 케이팝잇', lic: 'CC BY 3.0' },
+    cherish: { src: TH + 'd/d4/Illit_at_Canada_Goose_Photo_Call%2C_December_11%2C_2024.png/960px-Illit_at_Canada_Goose_Photo_Call%2C_December_11%2C_2024.png',
+      page: CP + 'Illit_at_Canada_Goose_Photo_Call,_December_11,_2024.png', when: '2024.12.11 I\'LL LIKE YOU 時期・品牌活動', by: '티비텐 TV10', lic: 'CC BY 3.0' },
+    notcute: { src: TH + '2/2c/251106_ILLIT.png/960px-251106_ILLIT.png',
+      page: CP + '251106_ILLIT.png', when: '2025.11.06 NOT CUTE ANYMORE 時期', by: 'theMEGASTUDY', lic: 'CC BY 4.0' },
+    breakeven: { src: TH + 'e/ec/29102026_ILLIT_TOP_TEN_AWARDS.png/960px-29102026_ILLIT_TOP_TEN_AWARDS.png',
+      page: CP + '29102026_ILLIT_TOP_TEN_AWARDS.png', when: '2026.10.29 BREAK EVEN 時期・TOP TEN AWARDS 最佳女團', by: 'K-POPIT 케이팝잇', lic: 'CC BY 4.0' },
+  };
+  const events = [
+    { d: '2023', t: '《R U Next?》', k: '選秀', p: 'JTBC 選秀節目決定出道陣容，五人組成 ILLIT。', img: eraImg.predebut },
+    { d: '2024.03.25', t: 'SUPER REAL ME', k: '出道 · 1st mini', p: '主打〈Magnetic〉打進 Billboard Hot 100 第 91 名、Global 200 最高第 6 名。', img: eraImg.magnetic },
+    { d: '2024.10.21', t: "I'LL LIKE YOU", k: '2nd mini', p: '主打〈Cherish (My Love)〉，Billboard 200 第 94 名。', img: eraImg.cherish },
+    { d: '2025', t: '〈Almond Chocolate〉', k: '日本', p: '日文單曲，Billboard JAPAN Hot 100 最高第 13 名。', c: 'var(--sky)' },
+    { d: '2025.06.16', t: 'bomb', k: '3rd mini', p: '收錄〈Do the Dance〉，Circle 專輯榜冠軍。' },
+    { d: '2025.09', t: '〈時よ止まれ〉', k: '日本', p: '日本正式出道單曲。', c: 'var(--sky)' },
+    { d: '2025.11', t: 'NOT CUTE ANYMORE', k: '1st single album', p: '首張單曲專輯。', img: eraImg.notcute },
+    { d: '2026.04', t: '〈Bubee〉', k: '單曲', p: '韓文版於 4 月 13 日發行。' },
+    { d: '2026.05', t: 'MAMIHLAPINATAPAI', k: '4th mini', p: '首次進入 Billboard 200 前 50（第 26 名），World Albums 第 1 名。' },
+    { d: '2026.06', t: '〈ICONIC BY MISTAKE〉', k: '合作', p: '與 LE SSERAFIM、KATSEYE 合作，Billboard Hot 100 第 38 名。', c: 'var(--lilac)' },
+    { d: '2026.10', t: 'BREAK EVEN', k: '5th mini', p: 'Billboard 200 第 6 名、Top Album Sales 第 1 名，生涯首張前十專輯。', img: eraImg.breakeven },
+  ];
+
+  /* ---------- hero day counter ---------- */
+  const days = Math.round((new Date('2026-11-14') - DEBUT) / 864e5);
+  const daysEl = document.getElementById('daysNum');
+  countUp(daysEl, days, '', 1600);
+
+  function countUp(el, to, prefix, dur) {
+    if (reduce) { el.textContent = prefix + to.toLocaleString(); return; }
+    const t0 = performance.now();
+    (function tick(t) {
+      const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+      el.textContent = prefix + Math.round(to * e).toLocaleString();
+      if (p < 1) requestAnimationFrame(tick);
+    })(t0);
+  }
+
+  /* ---------- scattered stickers ---------- */
+  const scatter = [
+    ['#members', 'top:-70px;right:2%;width:66px;--r:12deg', 's-cat'],
+    ['#members', 'top:-40px;left:-10px;width:36px;--d:-1s', 's-sparkle'],
+    ['.stats', 'bottom:-40px;right:-10px;width:70px;--r:-10deg;--d:-2s', 's-music'],
+    ['.stats', 'top:-30px;left:-24px;width:52px;--r:-12deg', 's-heart'],
+    ['.sticky .chartbox', 'top:-60px;right:-14px;width:56px;--r:14deg;--d:-1.4s', 's-star'],
+    ['#steps', 'top:12%;left:-30px;width:46px;--d:-.8s', 's-bow'],
+    ['#steps', 'top:55%;right:-20px;width:38px;--d:-2.4s', 's-sparkle'],
+    ['#timeline', 'top:-80px;right:4%;width:84px;--d:-3s', 's-cloud'],
+    ['#timeline', 'top:45%;right:2%;width:56px;--r:-8deg;--d:-1s', 's-heart'],
+    ['#timeline', 'bottom:6%;right:12%;width:40px;--d:-2s', 's-star'],
+  ];
+  scatter.forEach(([sel, style, sym]) => {
+    const host = document.querySelector(sel); if (!host) return;
+    const s = document.createElement('div');
+    s.className = 'sticker'; s.style.cssText = style; s.setAttribute('aria-hidden', 'true');
+    s.innerHTML = `<svg viewBox="0 0 64 64"><use href="#${sym}"/></svg>`;
+    host.style.position = host.style.position || 'relative';
+    host.appendChild(s);
+  });
+
+  /* group photo fallback: five little faces */
+  document.getElementById('groupFallback').innerHTML =
+    `<svg viewBox="0 0 500 220" style="width:88%">` + members.map((m, i) => {
+      const x = 60 + i * 95, y = 110 + (i % 2 ? 16 : -10), c = css(m.c.slice(4, -1));
+      return `<g transform="translate(${x} ${y})"><circle r="40" fill="${c}" opacity=".45"/><circle r="30" fill="#fff4f0" stroke="#fff" stroke-width="4"/>
+        <circle cx="-10" cy="-2" r="3.4" fill="#3a2a3a"/><circle cx="10" cy="-2" r="3.4" fill="#3a2a3a"/>
+        <ellipse cx="-17" cy="7" rx="5" ry="3" fill="#ff8fb4" opacity=".7"/><ellipse cx="17" cy="7" rx="5" ry="3" fill="#ff8fb4" opacity=".7"/>
+        <path d="M-5 6 q5 5 10 0" stroke="#3a2a3a" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+        <text y="62" text-anchor="middle" style="font-size:15px;font-weight:700;fill:#6f6478">${m.name}</text></g>`;
+    }).join('') + `</svg>`;
+
+  /* ---------- members ---------- */
+  const ageAt = (b) => (DEBUT - new Date(b)) / (365.2425 * 864e5);
+  const mWrap = document.getElementById('members');
+  const COMMONS = 'https://upload.wikimedia.org/wikipedia/commons/';
+  const PHOTO_PATH = { YUNAH: '4/40', MINJU: '0/06', MOKA: '7/78', WONHEE: '2/20', IROHA: '9/9e' };
+  const miniSyms =['s-heart', 's-star', 's-cloud', 's-bow', 's-cat'];
+  // cute placeholder face shown when a member photo is not provided
+  const face = (bg) => `<svg class="face" viewBox="0 0 100 100"><circle cx="50" cy="52" r="40" fill="${bg}" opacity=".55"/>
+    <circle cx="50" cy="54" r="30" fill="#fff4f0" stroke="#fff" stroke-width="4"/>
+    <circle cx="39" cy="52" r="3.6" fill="#3a2a3a"/><circle cx="61" cy="52" r="3.6" fill="#3a2a3a"/>
+    <ellipse cx="32" cy="61" rx="5" ry="3" fill="#ff8fb4" opacity=".7"/><ellipse cx="68" cy="61" rx="5" ry="3" fill="#ff8fb4" opacity=".7"/>
+    <path d="M45 60 q5 5 10 0" stroke="#3a2a3a" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg>`;
+  members.forEach((m, i) => {
+    const el = document.createElement('div');
+    el.className = 'card reveal';
+    el.style.setProperty('--c', m.c);
+    el.style.setProperty('--r', (i % 2 ? -14 : 12) + 'deg');
+    // CC BY 3.0 photos by K-POPIT 케이팝잇 via Wikimedia Commons (see credits in footer)
+    const nm = m.name[0] + m.name.slice(1).toLowerCase();
+    const file = COMMONS + PHOTO_PATH[m.name] + `/ILLIT_${nm}_at_Canada_Goose_Photo_Call.png`;
+    el.innerHTML = `<svg class="mini" viewBox="0 0 64 64"><use href="#${miniSyms[i]}"/></svg>
+      <div class="photo"><div class="ph-fallback">${face(css(m.c.slice(4, -1)))}</div>
+      <img class="photo-img" src="${file}" alt="${m.name}" loading="lazy" onerror="this.remove()"></div>
+      <div class="name">${m.name}</div><div class="hangul">${m.hangul}</div>
+      <dl><dt>生日</dt><dd>${m.birth.replaceAll('-', '.')}</dd><dt>國籍</dt><dd>${m.nat}</dd>
+      <dt>出道年齡</dt><dd>${Math.floor(ageAt(m.birth))} 歲</dd></dl>`;
+    mWrap.appendChild(el);
+  });
+
+  function drawAges() {
+    const host = d3.select('#ageChart'); host.selectAll('*').remove();
+    const W = host.node().clientWidth, H = 150, m = { l: 16, r: 16, t: 34, b: 34 };
+    const svg = host.append('svg').attr('width', W).attr('height', H);
+    const ages = members.map((d) => ({ ...d, age: ageAt(d.birth) }));
+    const avg = d3.mean(ages, (d) => d.age);
+    const x = d3.scaleLinear().domain([15, 21]).range([m.l, W - m.r]);
+    svg.append('text').attr('x', m.l).attr('y', 14).style('font-size', '13px').style('font-weight', 700).style('fill', css('--fg'))
+      .text('出道當天（2024.03.25）的年齡');
+    svg.append('g').attr('class', 'axis').attr('transform', `translate(0,${H - m.b})`)
+      .call(d3.axisBottom(x).ticks(6).tickFormat((d) => d + ' 歲').tickSizeOuter(0));
+    svg.append('line').attr('x1', x(avg)).attr('x2', x(avg)).attr('y1', m.t).attr('y2', H - m.b)
+      .attr('stroke', css('--muted')).attr('stroke-dasharray', '3 3');
+    svg.append('text').attr('x', x(avg) + 6).attr('y', m.t + 8).style('font-size', '11px').text(`平均 ${avg.toFixed(1)} 歲`);
+    const yMid = (H - m.b + m.t) / 2 + 6;
+    const g = svg.selectAll('g.dot').data(ages).join('g').attr('class', 'dot')
+      .attr('transform', (d, i) => `translate(${x(d.age)},${yMid + (i % 2 ? 14 : -14)})`);
+    g.append('circle').attr('r', 7).attr('fill', (d) => css(d.c.slice(4, -1)));
+    g.append('text').attr('y', (d, i) => (i % 2 ? 22 : -12)).attr('text-anchor', 'middle').style('font-size', '11px')
+      .style('fill', css('--fg')).text((d) => d.name);
+  }
+
+  /* ---------- streams chart ---------- */
+  function drawStreams() {
+    const host = d3.select('#streamChart'); host.selectAll('*').remove();
+    const W = host.node().clientWidth, H = 240, m = { l: 36, r: 20, t: 20, b: 34 };
+    const svg = host.append('svg').attr('width', W).attr('height', H);
+    const x = d3.scaleLinear().domain([0, 300]).range([m.l, W - m.r]);
+    const y = d3.scaleLinear().domain([0, 5.5]).range([H - m.b, m.t]);
+    svg.append('g').attr('class', 'axis').attr('transform', `translate(0,${H - m.b})`).call(d3.axisBottom(x).ticks(6).tickFormat((d) => d + ' 天').tickSizeOuter(0));
+    svg.append('g').attr('class', 'axis').attr('transform', `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5).tickSize(-(W - m.l - m.r)))
+      .call((g) => g.select('.domain').remove());
+    const area = d3.area().x((d) => x(d.day)).y0(y(0)).y1((d) => y(d.v));
+    const line = d3.line().x((d) => x(d.day)).y((d) => y(d.v));
+    svg.append('path').datum(streams).attr('d', area).attr('fill', css('--pink')).attr('opacity', .12);
+    const p = svg.append('path').datum(streams).attr('d', line).attr('fill', 'none').attr('stroke', css('--pink')).attr('stroke-width', 3);
+    const pts = streams.filter((d) => d.label);
+    svg.selectAll('circle.m').data(pts).join('circle').attr('cx', (d) => x(d.day)).attr('cy', (d) => y(d.v)).attr('r', 6)
+      .attr('fill', css('--panel')).attr('stroke', css('--pink')).attr('stroke-width', 3);
+    svg.selectAll('text.m').data(pts).join('text').attr('x', (d) => x(d.day) + (d.day > 200 ? -10 : 10)).attr('y', (d) => y(d.v) - 10)
+      .attr('text-anchor', (d) => (d.day > 200 ? 'end' : 'start')).style('font-size', '12px').style('font-weight', 700)
+      .style('fill', css('--fg')).text((d) => d.label);
+    svg.append('text').attr('x', W - m.r).attr('y', H - m.b - 8).attr('text-anchor', 'end').style('font-size', '11px')
+      .text('里程碑之間以直線連接，非逐日資料');
+    if (!reduce) {
+      const L = p.node().getTotalLength();
+      p.attr('stroke-dasharray', L).attr('stroke-dashoffset', L);
+      new IntersectionObserver((es, ob) => es.forEach((e) => {
+        if (e.isIntersecting) { p.transition().duration(1400).ease(d3.easeCubicOut).attr('stroke-dashoffset', 0); ob.disconnect(); }
+      }), { threshold: .4 }).observe(host.node());
+    }
+  }
+
+  /* ---------- billboard 200 scrolly ---------- */
+  let b200State = -1, b200Draw = null;
+  function buildB200() {
+    const host = d3.select('#b200'); host.selectAll('*').remove();
+    const W = host.node().clientWidth, H = Math.min(420, Math.max(260, window.innerHeight * .5));
+    const m = { l: 44, r: 20, t: 24, b: 40 };
+    const svg = host.append('svg').attr('width', W).attr('height', H);
+    const x = d3.scalePoint().domain(b200.map((d) => d.album)).range([m.l + 20, W - m.r - 20]);
+    const y = d3.scaleLinear().domain([1, 200]).range([m.t, H - m.b]);
+    svg.append('g').attr('class', 'axis').attr('transform', `translate(${m.l},0)`)
+      .call(d3.axisLeft(y).tickValues([1, 10, 50, 100, 150, 200]).tickFormat((d) => '#' + d).tickSize(-(W - m.l - m.r)))
+      .call((g) => g.select('.domain').remove());
+    // top 10 band
+    svg.append('rect').attr('x', m.l).attr('width', W - m.l - m.r).attr('y', y(1)).attr('height', y(10) - y(1))
+      .attr('fill', css('--pink')).attr('opacity', .1);
+    svg.append('text').attr('x', W - m.r - 4).attr('y', y(10) - 4).attr('text-anchor', 'end').style('font-size', '10px').style('fill', css('--pink')).text('TOP 10');
+    svg.append('g').attr('class', 'axis').attr('transform', `translate(0,${H - m.b})`)
+      .call(d3.axisBottom(x).tickFormat((d, i) => (W < 480 ? b200[i].date : b200[i].short)).tickSize(0))
+      .call((g) => g.select('.domain').remove()).selectAll('text').attr('dy', '1.4em').style('font-size', '11px');
+    const path = svg.append('path').attr('fill', 'none').attr('stroke', css('--lilac')).attr('stroke-width', 3).attr('stroke-linejoin', 'round');
+    const line = d3.line().x((d) => x(d.album)).y((d) => y(d.rank)).curve(d3.curveMonotoneX);
+    const dots = svg.selectAll('g.pt').data(b200).join('g').attr('class', 'pt').attr('transform', (d) => `translate(${x(d.album)},${y(d.rank)})`).attr('opacity', 0);
+    dots.append('circle').attr('r', 8).attr('fill', css('--panel')).attr('stroke', css('--pink')).attr('stroke-width', 3);
+    dots.append('text').attr('y', (d) => (d.rank > 150 ? -16 : 26)).attr('text-anchor', 'middle').style('font-size', '15px').style('font-weight', 800)
+      .style('fill', css('--fg')).text((d) => '#' + d.rank);
+
+    b200Draw = function (i) {
+      const dur = reduce ? 0 : 600;
+      const shown = b200.slice(0, i + 1);
+      path.datum(shown).transition().duration(dur).attr('d', shown.length > 1 ? line : null);
+      dots.transition().duration(dur).attr('opacity', (d, j) => (j <= i ? 1 : 0))
+        .select('circle').attr('r', (d, j) => (j === i ? 11 : 7)).attr('fill', (d, j) => (j === i ? css('--pink') : css('--panel')));
+    };
+    b200Draw(Math.max(0, b200State));
+  }
+  const stepObs = new IntersectionObserver((es) => es.forEach((e) => {
+    if (!e.isIntersecting) return;
+    document.querySelectorAll('.step').forEach((s) => s.classList.toggle('active', s === e.target));
+    b200State = +e.target.dataset.i; if (b200Draw) b200Draw(b200State);
+  }), { rootMargin: '-45% 0px -45% 0px' });
+  document.querySelectorAll('.step').forEach((s) => stepObs.observe(s));
+
+  /* ---------- timeline ---------- */
+  const tl = document.getElementById('timeline');
+  events.forEach((e) => {
+    const el = document.createElement('div');
+    el.className = 'ev';
+    if (e.c) el.style.setProperty('--k', e.c);
+    el.innerHTML = `<time>${e.d}</time><h3>${e.t}<span class="kind">${e.k}</span></h3><p>${e.p}</p>`;
+    if (e.img) {
+      const n = tl.querySelectorAll('.era').length;
+      el.insertAdjacentHTML('beforeend', `<figure class="era" style="--tilt:${n % 2 ? 1.5 : -1.5}deg">
+        <div class="tape"></div>
+        <img src="${e.img.src}" alt="ILLIT 合照，${e.img.when}" loading="lazy" onerror="this.closest('figure').remove()">
+        <figcaption>${e.img.when}<br><a href="${e.img.page}" target="_blank" rel="noopener">Photo: ${e.img.by} / ${e.img.lic}</a></figcaption>
+      </figure>`);
+    }
+    tl.appendChild(el);
+  });
+
+  /* ---------- reveal + counters ---------- */
+  const revObs = new IntersectionObserver((es, ob) => es.forEach((e) => {
+    if (!e.isIntersecting) return;
+    e.target.classList.add('in');
+    e.target.querySelectorAll('[data-count]').forEach((n) => countUp(n, +n.dataset.count, n.dataset.prefix || '', 1200));
+    ob.unobserve(e.target);
+  }), { threshold: .15 });
+  document.querySelectorAll('.reveal, .ev').forEach((el) => revObs.observe(el));
+
+  /* ---------- scroll progress + timeline fill ---------- */
+  const bar = document.getElementById('progress'), fill = document.getElementById('tlFill');
+  function onScroll() {
+    const h = document.documentElement;
+    bar.style.width = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100 + '%';
+    const r = tl.getBoundingClientRect();
+    const p = Math.min(1, Math.max(0, (window.innerHeight * .6 - r.top) / r.height));
+    fill.style.height = p * r.height + 'px';
+  }
+  addEventListener('scroll', onScroll, { passive: true });
+
+  // if the chart library can't load (offline / blocked CDN), keep the rest of the page working
+  function drawAll() { if (window.d3) { drawAges(); drawStreams(); buildB200(); } onScroll(); }
+  drawAll();
+  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 150); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+})();
+</script>
+</body>
+</html>
