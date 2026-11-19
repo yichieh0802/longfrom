@@ -1,4 +1,98 @@
-<meta name="dash-one-writer">
+<!doctype html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>台灣海廢之潮</title>
+<meta name="description" content="台灣海洋廢棄物數據故事：海岸垃圾、材質、十大海廢、清除量與向海致敬成效。">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<style>
+  :root {
+    --color-bg: #fbf8f1; --color-panel: #ffffff; --color-fg: #1f2328; --color-fg-muted: #5c6370;
+    --font-anthropic-sans: system-ui, -apple-system, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    --font-anthropic-serif: "Noto Serif TC", "PMingLiU", Georgia, serif;
+    --cds-gap-sm: 8px; --cds-gap-md: 16px; --cds-gap-lg: 24px; --cds-gap-xl: 40px;
+    --cds-pad-sm: 8px; --cds-pad-md: 16px; --cds-pad-lg: 24px; --cds-pad-xl: 48px;
+    --cds-font-size-caption: .85rem; --cds-surface-popover: #ffffff; --cds-chart-muted: #9aa3ad;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --color-bg: #12161c; --color-panel: #1b2129; --color-fg: #eef1f4; --color-fg-muted: #a7b0ba;
+      --cds-surface-popover: #222a33; --cds-chart-muted: #6b7682; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --color-bg: #12161c; --color-panel: #1b2129; --color-fg: #eef1f4; --color-fg-muted: #a7b0ba;
+    --cds-surface-popover: #222a33; --cds-chart-muted: #6b7682; color-scheme: dark;
+  }
+  html, body { margin: 0; background: var(--color-bg); color: var(--color-fg); font-family: var(--font-anthropic-sans); }
+</style>
+<script>
+  // Minimal stand-in for the dashboard runtime this page was written for: inline data sources, calcs and draw handlers.
+  (function () {
+    const S = (rows) => rows.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, String(v)])));
+    const sources = {
+      facts: S([
+        { key: 'gp_stations', value: 121 },        // 綠色和平 2019 快篩
+        { key: 'gp_liters', value: 12272000 },
+        { key: 'gp_tons', value: 646 },
+        { key: 'sow_items', value: 904302 },       // 中央社 2018：2004–2016 淨灘紀錄
+        { key: 'sow_kg', value: 131358 },
+        { key: 'sow_plastic', value: 90.8 },
+        { key: 'all_2025', value: 84000 },         // 中央社 2026-08
+        { key: 'recycled_oca', value: 313 },
+        { key: 'floats', value: 215000 },
+        { key: 'nets_products', value: 912 },      // 聯合報 2025：近五年回收廢漁網（含蚵網）約 912 公噸
+      ]),
+      top10: S([
+        { rank: 1, item: '塑膠瓶蓋', group: '飲食' },
+        { rank: 2, item: '漁業用浮球', group: '漁業' },
+        { rank: 3, item: '塑膠提袋', group: '飲食' },
+        { rank: 4, item: '吸管', group: '飲食' },
+        { rank: 5, item: '免洗餐具', group: '飲食' },
+        { rank: 6, item: '玻璃瓶', group: '飲食' },
+        { rank: 7, item: '寶特瓶', group: '飲食' },
+        { rank: 8, item: '外帶飲料杯', group: '飲食' },
+        { rank: 9, item: '其他飲料瓶與食物容器', group: '飲食' },
+        { rank: 10, item: '菸蒂', group: '其他' },
+      ]),
+      cleanup: S([{ year: 2021, tons: 14355 }, { year: 2022, tons: 17258 }, { year: 2023, tons: 16018 }, { year: 2024, tons: 20439 }]),
+      coast: S([{ year: 2019, tons: 2294 }, { year: 2025, tons: 772 }]),
+    };
+    const calcs = {}, handlers = {}, mounts = new Map();
+    let ready = false;
+    const run = (name) => {
+      const h = handlers[name];
+      if (!h) return;
+      document.querySelectorAll(`[data-draw="${name}"]`).forEach((el) => {
+        if (typeof h === 'function') return h(el);
+        if (!mounts.has(el)) mounts.set(el, h.mount ? h.mount(el) : undefined);
+        h.update(el, mounts.get(el));
+      });
+    };
+    window.dash = {
+      data(name) {
+        if (name in sources) return { status: 'ok', data: sources[name] };
+        const c = calcs[name];
+        if (!c) return { status: 'missing', data: null };
+        try { return { status: 'ok', data: c.fn(...c.inputs.map((i) => sources[i])) }; }
+        catch (e) { console.error(e); return { status: 'error', data: null }; }
+      },
+      calc(name, def) { calcs[name] = def; },
+      draw(name, h) { if (h) { handlers[name] = h; if (ready) run(name); } else run(name); },
+    };
+    document.addEventListener('DOMContentLoaded', () => {
+      ready = true;
+      Object.keys(handlers).forEach(run);
+      let t;
+      window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => run('stage'), 150); });
+    });
+  })();
+</script>
+</head>
+<body>
+<div id="dash-root">
 <style>
   /* Layout: a page that runs from sky, through the sea, down onto the sand; story cards on the left, a sketchbook chart pinned on the right. */
   #dash-root { --dash-gutter: 0; }
@@ -189,8 +283,8 @@
           <svg class="sea-icon sea-rough" viewBox="0 0 64 64" aria-hidden="true"><g stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M40 18L48 3" fill="none" stroke="#ff6f4f" stroke-width="4"></path><path d="M14 18h36l-5 40H19z" fill="#fff"></path><path d="M12 18h40" fill="none"></path><path d="M17 32h30" fill="none" stroke="#2b8cbe"></path></g></svg>
           <div class="sea-kicker">三、品項</div>
           <h2>海灘上最常撿到的，是我們的飲料</h2>
-          <p data-read lang="zh-TW">國際淨灘行動的十大海廢中，有 <span class="sea-num" data-draw="calc" data-source="food_count">—</span> 項來自飲食：瓶蓋、提袋、吸管、免洗餐具、寶特瓶、外帶杯。唯一擠進前段的非生活垃圾，是漁業用浮球。</p>
-          <p class="sea-note">排名出自荒野保護協會整理的國際淨灘統計，原文年份未能確認。2017 年的監測中，寶特瓶（20,455 件）與瓶蓋（20,129 件）幾乎同數，排序每年互換。</p>
+          <p data-read lang="zh-TW">國際淨灘行動的十大海廢中，有 <span class="sea-num" data-draw="calc" data-source="food_count">—</span> 項來自飲食：瓶蓋、提袋、吸管、免洗餐具、玻璃瓶、寶特瓶、外帶杯、飲料瓶與食物容器。唯一不屬於日常生活的，是排名第二的漁業用浮球。</p>
+          <p class="sea-note">排名出自荒野保護協會會訊整理的國際淨灘統計。2017 年的監測中，寶特瓶（20,455 件）與瓶蓋（20,129 件）幾乎同數，排序每年互換。</p>
         </div>
       </div>
 
@@ -219,7 +313,7 @@
           <svg class="sea-icon sea-rough" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 16a18 18 0 0 1 28 6" stroke="#5fb37a"></path><path d="M50 12v11h-11" stroke="#5fb37a"></path><path d="M52 38a18 18 0 0 1-24 14" stroke="#2b8cbe"></path><path d="M34 58l-7-6l7-7" stroke="#2b8cbe"></path><path d="M12 46a18 18 0 0 1 0-22" stroke="#ff6f4f"></path><path d="M4 30l8-7l5 9" stroke="#ff6f4f"></path></g></svg>
           <div class="sea-kicker">六、循環</div>
           <h2>從浮球到課桌椅</h2>
-          <p data-read lang="zh-TW">撿起來之後還有下一步：<span class="sea-num" data-draw="cell" data-source="facts" data-field="value" data-where="key=nets_products">—</span> 公噸廢漁網與浮具被再製成課桌椅、鍵盤滑鼠；海保署回收海廢與廢漁網約 <span class="sea-num" data-draw="cell" data-source="facts" data-field="value" data-where="key=recycled_oca">—</span> 公噸；漁業署累計補助 <span class="sea-num" data-draw="cell" data-source="facts" data-field="value" data-where="key=floats">—</span> 顆改良性浮具，從源頭替換保麗龍浮球。</p>
+          <p data-read lang="zh-TW">撿起來之後還有下一步：<span class="sea-num" data-draw="cell" data-source="facts" data-field="value" data-where="key=nets_products">—</span> 公噸廢漁網（含蚵網）近五年被回收，部分再製成課桌椅、鍵盤滑鼠；海保署回收海廢與廢漁網約 <span class="sea-num" data-draw="cell" data-source="facts" data-field="value" data-where="key=recycled_oca">—</span> 公噸；漁業署累計補助 <span class="sea-num" data-draw="cell" data-source="facts" data-field="value" data-where="key=floats">—</span> 顆改良性浮具，從源頭替換保麗龍浮球。</p>
           <p class="sea-note">第三期向海致敬計畫（2028–2031 年）預計 2027 年 2 月提報行政院。</p>
         </div>
       </div>
@@ -248,7 +342,7 @@
     <details>
       <summary>資料來源與口徑說明</summary>
       <ul>
-        <li>縣市海廢清除量（2021–2024）：海洋保育署統計，見<a href="https://udn.com/news/story/7327/9109032">聯合報 2025 年 10 月報導</a>。</li>
+        <li>縣市海廢清除量（2021–2024）：海洋保育署統計，見聯合報 2025 年報導（原連結已失效）。</li>
         <li>海岸廢棄物調查量、2025 年清理總量、浮具補助、回收量：<a href="https://www.cna.com.tw/news/ahel/202608050310.aspx">中央社 2026 年 8 月報導</a>。</li>
         <li>2019 海岸快篩：<a href="https://www.greenpeace.org/taiwan/press/7747/">綠色和平新聞稿</a>。</li>
         <li>2004–2016 淨灘分析與十大海廢排名：<a href="https://www.cna.com.tw/news/ahel/201810030133.aspx">中央社 2018 年報導</a>、<a href="https://www.sow.org.tw/sites/sow/files/sow_283_p04-07.pdf">荒野保護協會會訊</a>。</li>
@@ -471,7 +565,7 @@
         if (fail(F)) { title('資料載入失敗'); return; }
         title('撿起來之後');
         const items = [
-          ['nets_products', '公噸', '廢漁網浮具再製成產品', coral],
+          ['nets_products', '公噸', '近五年回收廢漁網', coral],
           ['recycled_oca', '公噸', '海保署回收海廢與廢漁網', blue],
           ['floats', '顆', '補助改良性浮具', green],
         ];
@@ -488,3 +582,6 @@
     },
   });
 </script>
+</div>
+</body>
+</html>
