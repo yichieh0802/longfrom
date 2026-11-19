@@ -149,6 +149,36 @@
   @keyframes float { 0%, 100% { transform: rotate(var(--r, 0deg)) translateY(0); } 50% { transform: rotate(calc(var(--r, 0deg) + 8deg)) translateY(-10px); } }
   .wrap, .scrolly { position: relative; z-index: 1; }
 
+  /* timeline + now-playing side panel */
+  .tl-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 48px; }
+  .np-wrap { position: relative; }
+  .tl-grid .timeline { padding-bottom: 28vh; } /* room so the panel stays pinned while the last entry is mid-screen */
+  .np { position: sticky; top: 12vh; margin-top: 40px; background: var(--panel); border: 1px solid var(--line); border-radius: 24px;
+    padding: 22px 24px 20px; text-align: center; box-shadow: 0 14px 36px rgba(120, 60, 100, .12); }
+  .np-head { font-size: .72rem; letter-spacing: .22em; font-weight: 800; color: var(--pink); display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .np-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--pink); animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .3; transform: scale(.7); } }
+  .np-vinyl { position: relative; width: min(190px, 26vh, 62%); margin: 16px auto 10px; }
+  .vinyl { width: 100%; display: block; animation: spin 6s linear infinite; filter: drop-shadow(0 8px 14px rgba(0,0,0,.25)); }
+  .vinyl #npLabel { transition: fill .5s; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .np-sticker { position: absolute; width: 52px; right: -8px; top: -6px; transform: rotate(14deg); }
+  .np-kind { font-size: .78rem; font-weight: 700; color: var(--np-c, var(--pink)); letter-spacing: .06em; min-height: 1.2em; }
+  .np-title { font-family: var(--serif); font-size: 1.6rem; font-weight: 700; line-height: 1.25; margin: 2px 0; }
+  .np-date { font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .np-stat { margin: 14px auto 0; padding: 12px; border-radius: 16px; background: var(--soft); display: flex; align-items: baseline; justify-content: center; gap: 10px; }
+  .np-num { font-family: var(--serif); font-size: 2.4rem; font-weight: 800; color: var(--pink); line-height: 1; }
+  .np-lbl { font-size: .85rem; color: var(--fg); text-align: left; }
+  .np-since { margin-top: 10px; font-size: .82rem; color: var(--muted); min-height: 1.3em; }
+  .np-dots { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .np-dots button { width: 12px; height: 12px; padding: 0; border-radius: 50%; border: 2px solid var(--k, var(--pink)); background: transparent; cursor: pointer; transition: transform .2s, background .2s; }
+  .np-dots button.on { background: var(--k, var(--pink)); transform: scale(1.35); }
+  .np-dots button:focus-visible { outline: 2px solid var(--lilac); outline-offset: 2px; }
+  .np.swap .np-title, .np.swap .np-stat { animation: pop .45s ease; }
+  @keyframes pop { 0% { opacity: 0; transform: translateY(8px) scale(.96); } 100% { opacity: 1; transform: none; } }
+  .ev.now::before { background: var(--k, var(--pink)); box-shadow: 0 0 0 5px color-mix(in srgb, var(--k, var(--pink)) 25%, transparent); }
+  @media (max-width: 900px) { .tl-grid { grid-template-columns: 1fr; } .np-wrap { display: none; } .tl-grid .timeline { padding-bottom: 0; } }
+
   @media (max-width: 760px) {
     .scrolly { grid-template-columns: 1fr; }
     .sticky { order: -1; height: auto; top: 0; z-index: 2; padding: 8px 0; background: var(--bg); }
@@ -158,7 +188,7 @@
   }
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
-    .hero::before, .scroll-hint, .sticker > svg { animation: none; }
+    .hero::before, .scroll-hint, .sticker > svg, .vinyl, .np-dot { animation: none; }
     .reveal, .ev, .step > div { transition: none; opacity: 1; transform: none; }
   }
 </style>
@@ -280,7 +310,32 @@
       <div class="eyebrow">04 · Timeline</div>
       <h2>ILLIT 大事記</h2>
     </div>
-    <div class="timeline" id="timeline"><div class="fill" id="tlFill"></div></div>
+    <div class="tl-grid">
+      <div class="timeline" id="timeline"><div class="fill" id="tlFill"></div></div>
+      <aside class="np-wrap" aria-label="目前時期">
+        <div class="np" id="np">
+          <div class="np-head"><span class="np-dot"></span>NOW PLAYING</div>
+          <div class="np-vinyl">
+            <svg viewBox="0 0 200 200" class="vinyl" aria-hidden="true">
+              <circle cx="100" cy="100" r="96" fill="#1d1722"/>
+              <g fill="none" stroke="#3a3142" stroke-width="1.2"><circle cx="100" cy="100" r="86"/><circle cx="100" cy="100" r="76"/><circle cx="100" cy="100" r="66"/><circle cx="100" cy="100" r="56"/></g>
+              <path d="M40 60 A70 70 0 0 1 80 32" stroke="#ffffff" stroke-opacity=".25" stroke-width="6" fill="none" stroke-linecap="round"/>
+              <circle cx="100" cy="100" r="40" fill="var(--np-c, #ff8db5)" id="npLabel"/>
+              <text x="100" y="97" text-anchor="middle" style="font-size:13px;font-weight:800;fill:#fff;letter-spacing:.1em">ILLIT</text>
+              <text x="100" y="114" text-anchor="middle" style="font-size:9px;fill:#fff" id="npLabelYear">2024</text>
+              <circle cx="100" cy="100" r="4" fill="#1d1722"/>
+            </svg>
+            <svg class="np-sticker" viewBox="0 0 64 64" aria-hidden="true"><use href="#s-star"/></svg>
+          </div>
+          <div class="np-kind" id="npKind">—</div>
+          <div class="np-title" id="npTitle">—</div>
+          <div class="np-date" id="npDate">—</div>
+          <div class="np-stat"><span class="np-num" id="npNum">—</span><span class="np-lbl" id="npLbl"></span></div>
+          <div class="np-since" id="npSince"></div>
+          <div class="np-dots" id="npDots"></div>
+        </div>
+      </aside>
+    </div>
   </section>
 </main>
 
@@ -551,6 +606,57 @@
     }
     tl.appendChild(el);
   });
+
+  /* ---------- now-playing side panel (desktop) ---------- */
+  // one headline number per timeline entry, same order as `events`
+  const evStats = [
+    ['5', '人出道陣容'], ['#91', 'Billboard Hot 100<br>K-pop 出道曲首例'], ['#94', 'Billboard 200'],
+    ['#13', 'Billboard JAPAN<br>Hot 100'], ['#1', 'Circle 專輯榜'], ['JP', '日本正式出道'],
+    ['1st', '首張單曲專輯'], ['KR', '韓文版<br>4 月 13 日發行'], ['#26', 'Billboard 200<br>首進前 50'],
+    ['#38', 'Billboard Hot 100<br>三團合作'], ['#6', 'Billboard 200<br>首張前十專輯'],
+  ];
+  const np = document.getElementById('np');
+  const evEls = [...tl.querySelectorAll('.ev')];
+  const $ = (id) => document.getElementById(id);
+  const dotsWrap = $('npDots');
+  evEls.forEach((el, i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.title = events[i].t.replace(/[〈〉《》]/g, '');
+    b.setAttribute('aria-label', `跳到 ${events[i].d} ${b.title}`);
+    if (events[i].c) b.style.setProperty('--k', events[i].c);
+    b.addEventListener('click', () => el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }));
+    dotsWrap.appendChild(b);
+  });
+  function sinceDebut(d) {
+    const [y, m] = d.split('.').map(Number);
+    if (!m) return y < 2024 ? '出道前' : '';
+    const months = (y - 2024) * 12 + (m - 3);
+    if (months < 0) return '出道前';
+    if (months === 0) return '出道當月 ✦';
+    return `出道後第 ${months} 個月`;
+  }
+  let npCur = -1;
+  function setNP(i) {
+    if (i === npCur || i < 0) return;
+    npCur = i;
+    const e = events[i], c = e.c ? css(e.c.slice(4, -1)) : css('--pink');
+    np.style.setProperty('--np-c', c);
+    $('npKind').textContent = e.k;
+    $('npTitle').textContent = e.t;
+    $('npDate').textContent = e.d;
+    $('npNum').textContent = evStats[i][0];
+    $('npLbl').innerHTML = evStats[i][1];
+    $('npSince').textContent = sinceDebut(e.d);
+    $('npLabelYear').textContent = e.d.slice(0, 4);
+    evEls.forEach((el, j) => el.classList.toggle('now', j === i));
+    [...dotsWrap.children].forEach((b, j) => b.classList.toggle('on', j === i));
+    np.classList.remove('swap'); void np.offsetWidth; np.classList.add('swap');
+  }
+  setNP(0);
+  const npObs = new IntersectionObserver((es) => es.forEach((e) => {
+    if (e.isIntersecting) setNP(evEls.indexOf(e.target));
+  }), { rootMargin: '-40% 0px -55% 0px' });
+  evEls.forEach((el) => npObs.observe(el));
 
   /* ---------- reveal + counters ---------- */
   const revObs = new IntersectionObserver((es, ob) => es.forEach((e) => {
