@@ -1,0 +1,490 @@
+<meta name="dash-one-writer">
+<style>
+  /* Layout: a page that runs from sky, through the sea, down onto the sand; story cards on the left, a sketchbook chart pinned on the right. */
+  #dash-root { --dash-gutter: 0; }
+  .sea {
+    --sea-ink: var(--color-fg);
+    --sea-sky: color-mix(in srgb, #8fd8f7 38%, var(--color-bg));
+    --sea-water: color-mix(in srgb, #2aa3d6 30%, var(--color-bg));
+    --sea-deep: color-mix(in srgb, #1f7fb3 38%, var(--color-bg));
+    --sea-sand: color-mix(in srgb, #f6cf86 48%, var(--color-bg));
+    --sea-paper: color-mix(in srgb, #fff1cf 22%, var(--color-panel));
+    --sea-coral: #ff6f4f;
+    --sea-blue: #2b8cbe;
+    --sea-yellow: #ffc845;
+    --sea-green: #5fb37a;
+    --sea-hand: "Kaiti TC", "BiauKai", "STKaiti", "DFKai-SB", "標楷體", "KaiTi", var(--font-anthropic-serif), serif;
+    container-type: inline-size;
+    background: linear-gradient(180deg, var(--sea-sky) 0, var(--sea-water) 520px, var(--sea-deep) 60%, var(--sea-water) 82%, var(--sea-sand) 94%);
+    color: var(--sea-ink);
+    overflow-x: clip;
+  }
+  .sea-in { box-sizing: border-box; width: min(100%, 1280px); margin-inline: auto; padding-inline: max(16px, 4cqi); }
+  .sea-rough { filter: url(#sea-rough); }
+
+  .sea-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: var(--cds-gap-xl); align-items: center; padding-block: var(--cds-pad-xl) 0; }
+  .sea-head-text { display: grid; gap: var(--cds-gap-md); min-width: 0; }
+  .sea-eyebrow { justify-self: start; font-family: var(--sea-hand); font-size: 1rem; background: var(--sea-yellow); color: #3a2a00; padding: 4px 12px; border: 2px solid var(--sea-ink);
+    border-radius: 14px 4px 12px 5px / 5px 12px 4px 14px; transform: rotate(-2deg); }
+  .sea-title { font-family: var(--sea-hand); font-weight: 700; font-size: clamp(2.3rem, 8cqi, 4.6rem); line-height: 1.05; margin: 0; letter-spacing: .02em; text-wrap: balance; }
+  .sea-mark { background: linear-gradient(transparent 58%, color-mix(in srgb, var(--sea-coral) 55%, transparent) 58% 90%, transparent 90%); padding-inline: .08em; }
+  .sea-lede { font-size: 1.08rem; line-height: 1.85; margin: 0; max-width: 34rem; }
+  .sea-hero-art { width: 100%; height: auto; display: block; min-width: 0; }
+  .sea-num { font-variant-numeric: tabular-nums; font-family: var(--sea-hand); font-weight: 700; font-size: 1.12em; color: var(--sea-coral); }
+  .sea-scroll-hint { font-family: var(--sea-hand); font-size: 1rem; display: inline-flex; gap: 8px; align-items: center; }
+  .sea-wave-sep { display: block; width: 100%; height: 40px; }
+
+  .sea-story { --sea-stage-h: min(620px, calc(100svh - 140px)); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: var(--cds-gap-xl); align-items: start; padding-block: var(--cds-pad-lg); }
+  .sea-steps { display: grid; min-width: 0; }
+  .sea-step { min-height: 80vh; min-height: 80svh; display: flex; align-items: center; }
+  .sea-step:first-child { min-height: 55vh; min-height: 55svh; align-items: flex-start; }
+  .sea-step:last-child { min-height: 70vh; min-height: 70svh; }
+  .sea-card { position: relative; background: var(--sea-paper); border: 2.5px solid var(--sea-ink);
+    border-radius: 22px 6px 26px 8px / 8px 24px 6px 20px; box-shadow: 6px 7px 0 color-mix(in srgb, var(--sea-ink) 80%, transparent);
+    padding: var(--cds-pad-lg) var(--cds-pad-lg) var(--cds-pad-lg); padding-top: calc(var(--cds-pad-lg) + 10px);
+    display: grid; gap: var(--cds-gap-sm); max-width: 30rem; transform: rotate(-.7deg); opacity: .6; transition: opacity .3s, transform .4s; }
+  .sea-step:nth-child(even) .sea-card { transform: rotate(.6deg); }
+  .sea-step.is-active .sea-card { opacity: 1; }
+  .sea-card::before { content: ""; position: absolute; top: -12px; left: 38%; width: 84px; height: 22px; background: color-mix(in srgb, var(--sea-yellow) 60%, transparent);
+    transform: rotate(-4deg); border-left: 2px dashed color-mix(in srgb, var(--sea-ink) 25%, transparent); border-right: 2px dashed color-mix(in srgb, var(--sea-ink) 25%, transparent); }
+  .sea-card h2 { font-family: var(--sea-hand); font-size: 1.6rem; font-weight: 700; margin: 0; padding-right: 64px; text-wrap: balance; line-height: 1.25; }
+  .sea-card p { margin: 0; line-height: 1.85; }
+  .sea-kicker { justify-self: start; font-family: var(--sea-hand); font-size: .95rem; color: #fff; background: var(--sea-coral); padding: 2px 12px;
+    border-radius: 12px 3px 10px 4px / 4px 10px 3px 12px; transform: rotate(-3deg); }
+  .sea-step:nth-child(3n+2) .sea-kicker { background: var(--sea-blue); }
+  .sea-step:nth-child(3n) .sea-kicker { background: var(--sea-green); }
+  .sea-icon { position: absolute; top: 10px; right: 12px; width: 64px; height: 64px; }
+  .sea-note { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); line-height: 1.7; border-top: 2px dashed color-mix(in srgb, var(--sea-ink) 25%, transparent); padding-top: var(--cds-pad-sm); }
+
+  .sea-stage-wrap { position: sticky; top: var(--cds-pad-md); min-width: 0; }
+  .sea-stage { position: relative; height: var(--sea-stage-h); min-height: 260px; touch-action: pan-y; border: 2.5px solid var(--sea-ink);
+    border-radius: 10px 26px 8px 22px / 22px 8px 26px 10px; box-shadow: 7px 8px 0 color-mix(in srgb, var(--sea-ink) 80%, transparent);
+    background-color: var(--sea-paper);
+    background-image: repeating-linear-gradient(0deg, transparent 0 27px, color-mix(in srgb, var(--sea-blue) 14%, transparent) 27px 28px);
+    overflow: hidden; }
+  .sea-stage svg { display: block; }
+  .sea-stage text { fill: var(--sea-ink); font-family: var(--font-anthropic-sans); }
+  .sea-stage .hand { font-family: var(--sea-hand); font-weight: 700; }
+  .sea-stage .muted { fill: var(--color-fg-muted); }
+  .sea-tip { position: absolute; pointer-events: none; background: var(--cds-surface-popover); border: 2px solid var(--sea-ink); box-shadow: 3px 3px 0 var(--sea-ink);
+    border-radius: 10px 4px 10px 4px; padding: 6px 10px; font-size: var(--cds-font-size-caption); white-space: nowrap; }
+
+  .sea-foot { display: grid; gap: var(--cds-gap-md); padding-block: var(--cds-pad-xl) calc(var(--cds-pad-xl) * 2); }
+  .sea-foot-art { width: min(100%, 520px); height: auto; }
+  .sea-foot details { max-width: 44rem; background: var(--sea-paper); border: 2px solid var(--sea-ink); border-radius: 16px 5px 18px 6px / 6px 16px 5px 18px; padding: var(--cds-pad-md) var(--cds-pad-lg); }
+  .sea-foot summary { cursor: pointer; font-family: var(--sea-hand); font-weight: 700; font-size: 1.1rem; }
+  .sea-foot ul { margin: var(--cds-gap-sm) 0 0; padding-left: 1.2em; line-height: 1.8; }
+  .sea-foot a { color: var(--sea-blue); }
+  [data-dash-source-state=refreshing] { opacity: .5; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .sea-bob { animation: sea-bob 4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+    .sea-bob-2 { animation-delay: -1.6s; }
+    @keyframes sea-bob { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-6px) rotate(3deg); } }
+  }
+  /* Breakpoints follow the page's own width (container), so they also apply in a narrow side pane or when Sources opens. */
+  @container (max-width: 1000px) {
+    .sea-story { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--cds-gap-lg); }
+    .sea-head { gap: var(--cds-gap-lg); }
+  }
+  @container (max-width: 760px) {
+    .sea-head { grid-template-columns: minmax(0, 1fr); gap: var(--cds-gap-md); padding-block-start: var(--cds-pad-lg); }
+    .sea-hero-art { max-width: 520px; justify-self: center; }
+    .sea-story { --sea-stage-h: 42svh; grid-template-columns: minmax(0, 1fr); gap: 0; }
+    .sea-stage-wrap { order: -1; top: 0; z-index: 2; padding-block: var(--cds-pad-sm); }
+    .sea-step, .sea-step:first-child, .sea-step:last-child { min-height: 70vh; min-height: 70svh; align-items: flex-end; padding-bottom: 8svh; }
+    .sea-card { opacity: .95; max-width: 34rem; margin-inline: auto; }
+  }
+  @container (max-width: 440px) {
+    .sea-lede { font-size: 1rem; }
+    .sea-card { padding: var(--cds-pad-md); padding-top: calc(var(--cds-pad-md) + 10px); transform: none; box-shadow: 4px 5px 0 color-mix(in srgb, var(--sea-ink) 80%, transparent); }
+    .sea-step:nth-child(even) .sea-card { transform: none; }
+    .sea-card h2 { font-size: 1.32rem; padding-right: 50px; }
+    .sea-icon { width: 46px; height: 46px; top: 8px; right: 8px; }
+    .sea-stage { box-shadow: 4px 5px 0 color-mix(in srgb, var(--sea-ink) 80%, transparent); }
+    .sea-foot details { padding: var(--cds-pad-md); }
+  }
+  @media (max-height: 520px) and (orientation: landscape) {
+    .sea-story { --sea-stage-h: calc(100svh - 40px); }
+  }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <filter id="sea-rough" x="-5%" y="-5%" width="110%" height="110%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" seed="4" result="n"></feTurbulence>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="3.2" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap>
+  </filter>
+</svg>
+
+<article class="sea" lang="zh-TW">
+  <header class="sea-head sea-in" id="intro">
+    <div class="sea-head-text">
+      <div class="sea-eyebrow">台灣海洋廢棄物 · 數據故事</div>
+      <h1 class="sea-title">台灣<span class="sea-mark">海廢</span>之潮</h1>
+      <p class="sea-lede" data-read lang="zh-TW">海岸上調查到的廢棄物，從 2019 年的 <span class="sea-num" data-draw="cell" data-source="coast" data-field="tons" data-where="year=2019">—</span> 公噸降到 2025 年的 <span class="sea-num" data-draw="cell" data-source="coast" data-field="tons" data-where="year=2025">—</span> 公噸，少了 <span class="sea-num" data-draw="calc" data-source="coast_drop">—</span>%。但各縣市每年清除的海廢仍在增加，2024 年達 <span class="sea-num" data-draw="cell" data-source="cleanup" data-field="tons" data-where="year=2024">—</span> 公噸。</p>
+      <div class="sea-scroll-hint">往下捲，跟著海浪看下去
+        <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true" class="sea-rough"><path d="M13 3v18M5 14l8 8 8-8" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      </div>
+    </div>
+    <svg class="sea-hero-art" viewBox="0 0 600 300" role="img" aria-label="手繪插圖：太陽、海浪、漂流的寶特瓶、瓶蓋與一隻海龜">
+      <g class="sea-rough" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="510" cy="62" r="34" fill="#ffc845"></circle>
+        <path d="M510 10v-4M558 62h6M546 26l5-5M546 98l5 5M462 62h-6M474 26l-5-5" fill="none"></path>
+        <path d="M70 70q8-22 30-16q10-18 32-8q22-4 24 16q16 4 10 18H64q-14-4 6-10z" fill="#fff" fill-opacity=".85"></path>
+        <path d="M300 40q6-14 22-10q10-12 24-4q16-2 16 12q12 4 6 12h-72q-8-4 4-10z" fill="#fff" fill-opacity=".7"></path>
+        <path d="M0 170q25-16 50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0" fill="none" stroke="#2b8cbe"></path>
+        <path d="M0 300V205q25-16 50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0V300z" fill="#2aa3d6" fill-opacity=".35" stroke="#2b8cbe"></path>
+        <path d="M30 245q20-10 40 0M420 260q20-10 40 0M250 280q20-10 40 0" fill="none" stroke="#2b8cbe" stroke-width="2.5"></path>
+        <g class="sea-bob" transform="translate(110 150) rotate(-18)">
+          <path d="M14 0h14v10l6 8v46a6 6 0 0 1-6 6H14a6 6 0 0 1-6-6V18l6-8z" fill="#bfe6f7"></path>
+          <rect x="12" y="-10" width="18" height="10" rx="2" fill="#ff6f4f"></rect>
+          <rect x="8" y="32" width="26" height="14" fill="#ffc845"></rect>
+        </g>
+        <g class="sea-bob sea-bob-2" transform="translate(470 196)">
+          <circle cx="0" cy="0" r="13" fill="#ff6f4f"></circle>
+          <path d="M-9 -9l3 3M9 -9l-3 3M-9 9l3-3M9 9l-3-3" fill="none" stroke-width="2"></path>
+        </g>
+        <g transform="translate(300 232)">
+          <ellipse cx="-56" cy="18" rx="18" ry="8" fill="#5fb37a" transform="rotate(30 -56 18)"></ellipse>
+          <ellipse cx="44" cy="22" rx="20" ry="8" fill="#5fb37a" transform="rotate(-30 44 22)"></ellipse>
+          <ellipse cx="-50" cy="-20" rx="20" ry="8" fill="#5fb37a" transform="rotate(-30 -50 -20)"></ellipse>
+          <ellipse cx="40" cy="-24" rx="22" ry="8" fill="#5fb37a" transform="rotate(30 40 -24)"></ellipse>
+          <circle cx="76" cy="-4" r="15" fill="#5fb37a"></circle>
+          <circle cx="82" cy="-8" r="2.5" fill="currentColor" stroke="none"></circle>
+          <ellipse cx="0" cy="0" rx="62" ry="36" fill="#8cc63f"></ellipse>
+          <path d="M-20 -32l-10 18l10 16h22l10-16l-10-18M-30 -14h-30M12 -14h48M-20 2l-8 30M2 2l8 30" fill="none" stroke-width="2.5"></path>
+        </g>
+      </g>
+    </svg>
+  </header>
+
+  <svg class="sea-wave-sep" viewBox="0 0 600 40" preserveAspectRatio="none" aria-hidden="true">
+    <path class="sea-rough" d="M0 20q25-14 50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0" fill="none" stroke="currentColor" stroke-width="2.5" vector-effect="non-scaling-stroke"></path>
+  </svg>
+
+  <section class="sea-story sea-in" id="story">
+    <div class="sea-steps">
+      <div class="sea-step is-active" data-step="0" id="ch-scale">
+        <div class="sea-card">
+          <svg class="sea-icon sea-rough" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M4 22q7-8 14 0t14 0t14 0t14 0" stroke="#2b8cbe"></path><path d="M4 36q7-8 14 0t14 0t14 0t14 0" stroke="#2b8cbe"></path><path d="M4 54h56" stroke="#e0a940"></path><circle cx="20" cy="49" r="3" fill="#ff6f4f"></circle><circle cx="38" cy="50" r="2.5" fill="#ffc845"></circle><circle cx="50" cy="48" r="3" fill="#5fb37a"></circle></g></svg>
+          <div class="sea-kicker">一、規模</div>
+          <h2>一條海岸線上的六百多公噸</h2>
+          <p data-read lang="zh-TW">2019 年綠色和平在全台 <span class="sea-num" data-draw="cell" data-source="facts" data-field="value" data-where="key=gp_stations">—</span> 個海岸測站做「快篩」，推估海岸上約有 <span class="sea-num" data-draw="cell" data-source="facts" data-field="value" data-where="key=gp_liters">—</span> 公升的垃圾，重約 <span class="sea-num" data-draw="cell" data-source="facts" data-field="value" data-where="key=gp_tons">—</span> 公噸。</p>
+          <p class="sea-note">右圖沙灘上每一顆小點代表 1 公噸。北海岸（基隆、新北、桃園）與西南海岸（彰化到台南）最嚴重。</p>
+        </div>
+      </div>
+
+      <div class="sea-step" data-step="1" id="ch-plastic">
+        <div class="sea-card">
+          <svg class="sea-icon sea-rough" viewBox="0 0 64 64" aria-hidden="true"><g stroke="currentColor" stroke-width="3" stroke-linejoin="round"><path d="M26 10h12v8l5 7v29a4 4 0 0 1-4 4H25a4 4 0 0 1-4-4V25l5-7z" fill="#bfe6f7"></path><rect x="25" y="3" width="14" height="8" rx="2" fill="#ff6f4f"></rect><rect x="21" y="32" width="22" height="11" fill="#ffc845"></rect></g></svg>
+          <div class="sea-kicker">二、材質</div>
+          <h2>十件裡有九件是塑膠</h2>
+          <p data-read lang="zh-TW">荒野保護協會與學者分析 2004 到 2016 年的淨灘紀錄，共 <span class="sea-num" data-draw="cell" data-source="facts" data-field="value" data-where="key=sow_items">—</span> 件、<span class="sea-num" data-draw="cell" data-source="facts" data-field="value" data-where="key=sow_kg">—</span> 公斤。其中 <span class="sea-num" data-draw="cell" data-source="facts" data-field="value" data-where="key=sow_plastic">—</span>% 完全或部分是塑膠。</p>
+          <p class="sea-note">右圖 100 格，每格代表 1%。</p>
+        </div>
+      </div>
+
+      <div class="sea-step" data-step="2" id="ch-top10">
+        <div class="sea-card">
+          <svg class="sea-icon sea-rough" viewBox="0 0 64 64" aria-hidden="true"><g stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M40 18L48 3" fill="none" stroke="#ff6f4f" stroke-width="4"></path><path d="M14 18h36l-5 40H19z" fill="#fff"></path><path d="M12 18h40" fill="none"></path><path d="M17 32h30" fill="none" stroke="#2b8cbe"></path></g></svg>
+          <div class="sea-kicker">三、品項</div>
+          <h2>海灘上最常撿到的，是我們的飲料</h2>
+          <p data-read lang="zh-TW">國際淨灘行動的十大海廢中，有 <span class="sea-num" data-draw="calc" data-source="food_count">—</span> 項來自飲食：瓶蓋、提袋、吸管、免洗餐具、寶特瓶、外帶杯。唯一擠進前段的非生活垃圾，是漁業用浮球。</p>
+          <p class="sea-note">排名出自荒野保護協會整理的國際淨灘統計，原文年份未能確認。2017 年的監測中，寶特瓶（20,455 件）與瓶蓋（20,129 件）幾乎同數，排序每年互換。</p>
+        </div>
+      </div>
+
+      <div class="sea-step" data-step="3" id="ch-cleanup">
+        <div class="sea-card">
+          <svg class="sea-icon sea-rough" viewBox="0 0 64 64" aria-hidden="true"><g stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 24q14-20 28 0" fill="none"></path><path d="M12 24h40l-5 34H17z" fill="#ffc845"></path><circle cx="26" cy="20" r="4" fill="#ff6f4f"></circle><rect x="32" y="12" width="7" height="12" rx="2" fill="#bfe6f7"></rect></g></svg>
+          <div class="sea-kicker">四、清除</div>
+          <h2>撿得越來越多</h2>
+          <p data-read lang="zh-TW">海洋保育署統計各縣市清除的海廢，從 2021 年的 <span class="sea-num" data-draw="cell" data-source="cleanup" data-field="tons" data-where="year=2021">—</span> 公噸增加到 2024 年的 <span class="sea-num" data-draw="cell" data-source="cleanup" data-field="tons" data-where="year=2024">—</span> 公噸，四年多了 <span class="sea-num" data-draw="calc" data-source="cleanup_growth">—</span>%。</p>
+          <p class="sea-note">2023 年比前一年略降。清除量增加，反映的是清理動員擴大，不等於海廢變多。</p>
+        </div>
+      </div>
+
+      <div class="sea-step" data-step="4" id="ch-coast">
+        <div class="sea-card">
+          <svg class="sea-icon sea-rough" viewBox="0 0 64 64" aria-hidden="true"><g stroke="currentColor" stroke-width="3" stroke-linejoin="round"><ellipse cx="12" cy="44" rx="8" ry="4" fill="#5fb37a"></ellipse><ellipse cx="46" cy="46" rx="8" ry="4" fill="#5fb37a"></ellipse><circle cx="56" cy="32" r="6" fill="#5fb37a"></circle><ellipse cx="30" cy="34" rx="22" ry="14" fill="#8cc63f"></ellipse><path d="M22 22l-4 10l4 10h14l4-10l-4-10z" fill="none" stroke-width="2.5"></path></g></svg>
+          <div class="sea-kicker">五、成效</div>
+          <h2>留在海岸上的少了三分之二</h2>
+          <p data-read lang="zh-TW">「向海致敬」政策自 2020 年推動。海岸廢棄物調查量從 2019 年的 <span class="sea-num" data-draw="cell" data-source="coast" data-field="tons" data-where="year=2019">—</span> 公噸，降到 2025 年的 <span class="sea-num" data-draw="cell" data-source="coast" data-field="tons" data-where="year=2025">—</span> 公噸，約減少 <span class="sea-num" data-draw="calc" data-source="coast_drop">—</span>%。</p>
+          <p class="sea-note">2025 年各機關在河川、海岸與港口共清理約 <span class="sea-num" data-draw="cell" data-source="facts" data-field="value" data-where="key=all_2025">—</span> 公噸廢棄物，與上一章的縣市海廢清除量統計範圍不同。</p>
+        </div>
+      </div>
+
+      <div class="sea-step" data-step="5" id="ch-loop">
+        <div class="sea-card">
+          <svg class="sea-icon sea-rough" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 16a18 18 0 0 1 28 6" stroke="#5fb37a"></path><path d="M50 12v11h-11" stroke="#5fb37a"></path><path d="M52 38a18 18 0 0 1-24 14" stroke="#2b8cbe"></path><path d="M34 58l-7-6l7-7" stroke="#2b8cbe"></path><path d="M12 46a18 18 0 0 1 0-22" stroke="#ff6f4f"></path><path d="M4 30l8-7l5 9" stroke="#ff6f4f"></path></g></svg>
+          <div class="sea-kicker">六、循環</div>
+          <h2>從浮球到課桌椅</h2>
+          <p data-read lang="zh-TW">撿起來之後還有下一步：<span class="sea-num" data-draw="cell" data-source="facts" data-field="value" data-where="key=nets_products">—</span> 公噸廢漁網與浮具被再製成課桌椅、鍵盤滑鼠；海保署回收海廢與廢漁網約 <span class="sea-num" data-draw="cell" data-source="facts" data-field="value" data-where="key=recycled_oca">—</span> 公噸；漁業署累計補助 <span class="sea-num" data-draw="cell" data-source="facts" data-field="value" data-where="key=floats">—</span> 顆改良性浮具，從源頭替換保麗龍浮球。</p>
+          <p class="sea-note">第三期向海致敬計畫（2028–2031 年）預計 2027 年 2 月提報行政院。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="sea-stage-wrap">
+      <div class="sea-stage" id="stage" data-draw="stage" data-source="facts top10 cleanup coast coast_drop"></div>
+    </div>
+  </section>
+
+  <footer class="sea-foot sea-in" id="sources">
+    <svg class="sea-foot-art" viewBox="0 0 520 90" role="img" aria-label="手繪插圖：沙灘上的腳印、貝殼與一個被撿起的瓶蓋">
+      <g class="sea-rough" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <ellipse cx="40" cy="60" rx="9" ry="14" fill="none" transform="rotate(-20 40 60)"></ellipse>
+        <ellipse cx="76" cy="38" rx="9" ry="14" fill="none" transform="rotate(-20 76 38)"></ellipse>
+        <ellipse cx="116" cy="62" rx="9" ry="14" fill="none" transform="rotate(-20 116 62)"></ellipse>
+        <ellipse cx="152" cy="40" rx="9" ry="14" fill="none" transform="rotate(-20 152 40)"></ellipse>
+        <path d="M250 70q20-44 40 0z" fill="#ffd9c7"></path>
+        <path d="M262 70l8-26M278 70l-8-26M270 70v-28" fill="none" stroke-width="2"></path>
+        <circle cx="360" cy="56" r="12" fill="#ff6f4f"></circle>
+        <path d="M382 40q20-14 40-4" fill="none" stroke-dasharray="4 6"></path>
+        <path d="M430 30l12 4l-8 10" fill="none"></path>
+        <path d="M460 70q10-20 26-4q-12 12-26 4z" fill="#ffc845"></path>
+      </g>
+    </svg>
+    <details>
+      <summary>資料來源與口徑說明</summary>
+      <ul>
+        <li>縣市海廢清除量（2021–2024）：海洋保育署統計，見<a href="https://udn.com/news/story/7327/9109032">聯合報 2025 年 10 月報導</a>。</li>
+        <li>海岸廢棄物調查量、2025 年清理總量、浮具補助、回收量：<a href="https://www.cna.com.tw/news/ahel/202608050310.aspx">中央社 2026 年 8 月報導</a>。</li>
+        <li>2019 海岸快篩：<a href="https://www.greenpeace.org/taiwan/press/7747/">綠色和平新聞稿</a>。</li>
+        <li>2004–2016 淨灘分析與十大海廢排名：<a href="https://www.cna.com.tw/news/ahel/201810030133.aspx">中央社 2018 年報導</a>、<a href="https://www.sow.org.tw/sites/sow/files/sow_283_p04-07.pdf">荒野保護協會會訊</a>。</li>
+        <li>不同來源的統計範圍不同（縣市清除量、海岸調查量、全機關清理量），不能直接相加或比較。</li>
+      </ul>
+    </details>
+  </footer>
+</article>
+
+<script>
+  window.seaFmt = (v) => { const n = +v; return Number.isFinite(n) ? d3.format(',')(n) : '—'; };
+
+  dash.calc('coast_drop', {
+    inputs: ['coast'],
+    title: '海岸廢棄物調查量減少比例',
+    description: '2019 到 2025 年海岸廢棄物調查量減少的百分比。',
+    fn: (coast) => {
+      const a = coast.find((r) => r.year === '2019'), b = coast.find((r) => r.year === '2025');
+      if (!a || !b) return null;
+      return Math.round((1 - (+b.tons) / (+a.tons)) * 1000) / 10;
+    },
+  });
+  dash.calc('cleanup_growth', {
+    inputs: ['cleanup'],
+    title: '縣市海廢清除量增幅（2021→2024）',
+    description: '2024 年相對 2021 年的清除量增加百分比。',
+    fn: (cleanup) => {
+      const a = cleanup.find((r) => r.year === '2021'), b = cleanup.find((r) => r.year === '2024');
+      if (!a || !b) return null;
+      return Math.round(((+b.tons) / (+a.tons) - 1) * 1000) / 10;
+    },
+  });
+  dash.calc('food_count', {
+    inputs: ['top10'],
+    title: '十大海廢中與飲食相關的項數',
+    description: '十大排名中分類為「飲食」的品項數。',
+    fn: (top10) => top10.filter((r) => r.group === '飲食').length,
+  });
+
+  dash.draw('cell', (el) => {
+    const d = dash.data(el.dataset.source);
+    const [k, v] = (el.dataset.where || '').split('=');
+    const row = d.status === 'ok' ? d.data.find((r) => r[k] === v) : null;
+    el.textContent = row ? seaFmt(row[el.dataset.field]) : '—';
+  });
+  dash.draw('calc', (el) => {
+    const d = dash.data(el.dataset.source);
+    el.textContent = d.status === 'ok' && d.data != null ? String(d.data) : '—';
+  });
+</script>
+
+<script>
+  // The pinned sketchbook: one SVG whose scene follows the active chapter.
+  dash.draw('stage', {
+    mount(el) {
+      const state = { step: 0 };
+      const svg = d3.select(el).append('svg').attr('role', 'img').attr('width', '100%');
+      const defs = svg.append('defs');
+      [['sea-hatch-a', 'var(--sea-coral)'], ['sea-hatch-b', 'var(--sea-blue)'], ['sea-hatch-c', 'var(--color-fg-muted)']].forEach(([id, col]) => {
+        const p = defs.append('pattern').attr('id', id).attr('width', 9).attr('height', 9)
+          .attr('patternUnits', 'userSpaceOnUse').attr('patternTransform', 'rotate(40)');
+        p.append('rect').attr('width', 9).attr('height', 9).style('fill', col).style('fill-opacity', 0.18);
+        p.append('line').attr('x1', 0).attr('y1', 0).attr('x2', 0).attr('y2', 9).style('stroke', col).style('stroke-width', 4);
+      });
+      const bg = svg.append('g').attr('class', 'sea-rough');
+      const dots = svg.append('g').attr('class', 'sea-rough');
+      const scene = svg.append('g');
+      const tip = d3.select(el).append('div').attr('class', 'sea-tip').attr('hidden', '');
+      const steps = Array.from(document.querySelectorAll('.sea-step'));
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          if (!e.isIntersecting) return;
+          const s = +e.target.dataset.step;
+          if (s === state.step) return;
+          state.step = s;
+          steps.forEach((x) => x.classList.toggle('is-active', +x.dataset.step === s));
+          dash.draw('stage');
+        });
+      }, { root: document, rootMargin: '-45% 0px -45% 0px', threshold: 0 });
+      steps.forEach((s) => io.observe(s));
+      return { state, svg, bg, dots, scene, tip, io };
+    },
+    unmount(el, m) { m && m.io && m.io.disconnect(); },
+    update(el, m) {
+      const { state, svg, bg, dots, scene, tip } = m;
+      const W = Math.max(280, el.clientWidth), H = Math.max(300, el.clientHeight);
+      svg.attr('viewBox', `0 0 ${W} ${H}`).attr('height', H);
+      const reduce = !window.matchMedia('(prefers-reduced-motion: no-preference)').matches;
+      const dur = reduce ? 0 : 750;
+      const coral = 'var(--sea-coral)', blue = 'var(--sea-blue)', yellow = 'var(--sea-yellow)', green = 'var(--sea-green)';
+      const muted = 'var(--cds-chart-muted)', ink = 'var(--sea-ink)';
+      const F = dash.data('facts'), T = dash.data('top10'), C = dash.data('cleanup'), K = dash.data('coast');
+      const fact = (k) => { const r = F.status === 'ok' ? F.data.find((x) => x.key === k) : null; return r ? +r.value : NaN; };
+      const step = state.step;
+      const labels = ['沙灘上的海岸垃圾，每點 1 公噸', '淨灘垃圾的材質，100 格', '十大海廢排名', '各縣市清除海廢量長條圖', '海岸廢棄物調查量 2019 與 2025', '回收與源頭減量的數字'];
+      svg.attr('aria-label', labels[step] || '海廢數據');
+      tip.attr('hidden', '');
+
+      // ---- background: sea and beach for the opening scene ----
+      const wavy = (y0, amp) => {
+        let d = `M0 ${y0}`;
+        for (let x = 0; x < W; x += 40) d += ` q10 ${-amp} 20 0 t20 0`;
+        return d;
+      };
+      const beachTop = H * 0.56;
+      bg.selectAll('*').remove();
+      if (step === 0) {
+        bg.append('path').attr('d', `${wavy(beachTop - 34, 8)}`).style('fill', 'none').style('stroke', blue).style('stroke-width', 2.5);
+        bg.append('path').attr('d', `${wavy(beachTop, 10)} L${W} ${H} L0 ${H} Z`).style('fill', 'var(--sea-sand)').style('stroke', ink).style('stroke-width', 2.5);
+      }
+
+      // ---- dots layer (steps 0 & 1) ----
+      const tons = fact('gp_tons');
+      const n = Number.isFinite(tons) ? Math.round(tons) : 0;
+      let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+      const palette = [coral, blue, yellow, green];
+      const pts = d3.range(n).map((i) => {
+        const x = 18 + rnd() * (W - 36);
+        const y = beachTop + 18 + rnd() * (H - beachTop - 30) + Math.sin(x / 40) * 3;
+        return { i, x, y, c: palette[i % 4] };
+      });
+      const plastic = Math.round(fact('sow_plastic'));
+      const cell = Math.min((W - 80) / 10, (H - 120) / 10), r = Math.max(3, cell * 0.38);
+      const gx = (W - cell * 10) / 2 + cell / 2, gy = 76 + cell / 2;
+      dots.selectAll('circle').data(pts, (d) => d.i).join(
+        (en) => en.append('circle').attr('cx', (d) => d.x).attr('cy', (d) => d.y).attr('r', 0).style('stroke', ink),
+      ).transition().duration(dur).delay((d) => reduce ? 0 : (step === 1 ? 0 : d.i % 120) * 2)
+        .attr('cx', (d) => step === 1 && d.i < 100 ? gx + (d.i % 10) * cell : d.x)
+        .attr('cy', (d) => step === 1 && d.i < 100 ? gy + Math.floor(d.i / 10) * cell : (step === 0 ? d.y : d.y + 40))
+        .attr('r', (d) => step === 1 && d.i < 100 ? r : (step === 0 ? 3.2 : 0))
+        .style('stroke-width', step === 1 ? 2 : 1)
+        .style('fill', (d) => step === 1 ? (d.i < plastic ? coral : 'var(--sea-paper)') : d.c)
+        .style('opacity', (d) => step === 0 ? 0.95 : (step === 1 && d.i < 100 ? 1 : 0));
+
+      // ---- scene layer ----
+      scene.selectAll('*').remove();
+      const g = scene.append('g').style('opacity', reduce ? 1 : 0);
+      g.transition().duration(dur).style('opacity', 1);
+      const title = (t, sub) => {
+        g.append('text').attr('class', 'hand').attr('x', 20).attr('y', 36).style('font-size', Math.max(16, Math.min(20, W / 18)) + 'px').text(t);
+        if (sub) g.append('text').attr('class', 'muted').attr('x', 20).attr('y', 58).style('font-size', '12px').text(sub);
+      };
+      const showTip = (ev, txt) => {
+        const b = el.getBoundingClientRect();
+        tip.text(txt).attr('hidden', null)
+          .style('left', Math.max(6, Math.min(ev.clientX - b.left + 12, W - 170)) + 'px').style('top', Math.max(6, ev.clientY - b.top - 44) + 'px');
+      };
+      const fail = (d) => d.status === 'error' || d.status === 'missing';
+
+      if (step === 0) {
+        if (fail(F)) { title('資料載入失敗'); return; }
+        title('2019 年全台海岸垃圾推估', '沙灘上每一點代表 1 公噸');
+        const fs = Math.min(64, W / 7), by = 76 + fs * 0.8;
+        g.append('text').attr('class', 'hand').attr('x', 20).attr('y', by).style('font-size', fs + 'px').style('fill', coral)
+          .text(Number.isFinite(tons) ? seaFmt(tons) : '—');
+        g.append('text').attr('class', 'hand').attr('x', 24).attr('y', by + 22).style('font-size', '16px').text('公噸');
+      } else if (step === 1) {
+        if (fail(F)) { title('資料載入失敗'); return; }
+        title('淨灘垃圾是什麼做的？', '2004–2016 年，100 格，每格 1%');
+        const ly = gy + cell * 10 + 2;
+        [[coral, `塑膠 ${fact('sow_plastic')}%`], ['var(--sea-paper)', '其他材質']].forEach(([col, t], i) => {
+          const x = gx - cell / 2 + i * 150;
+          g.append('circle').attr('class', 'sea-rough').attr('cx', x + 7).attr('cy', ly + 6).attr('r', 7).style('fill', col).style('stroke', ink).style('stroke-width', 2);
+          g.append('text').attr('class', 'hand').attr('x', x + 20).attr('y', ly + 11).style('font-size', '15px').text(t);
+        });
+      } else if (step === 2) {
+        if (fail(T)) { title('資料載入失敗'); return; }
+        title('國際淨灘十大海廢', '依數量排名');
+        const rows = T.status === 'ok' ? T.data : [];
+        const top = 74, rh = Math.min(40, (H - top - 14) / 10);
+        const hatchOf = (gp) => gp === '飲食' ? 'url(#sea-hatch-a)' : gp === '漁業' ? 'url(#sea-hatch-b)' : 'url(#sea-hatch-c)';
+        rows.forEach((d, i) => {
+          const y = top + i * rh;
+          const row = g.append('g').attr('transform', `translate(16,${y})`);
+          const bw = (W - 32) * (1 - i * 0.045);
+          row.append('rect').attr('class', 'sea-rough').attr('width', bw).attr('height', rh - 7).attr('rx', 6)
+            .style('fill', hatchOf(d.group)).style('stroke', ink).style('stroke-width', 2);
+          row.append('circle').attr('class', 'sea-rough').attr('cx', 16).attr('cy', (rh - 7) / 2).attr('r', Math.min(12, (rh - 7) / 2 - 1))
+            .style('fill', 'var(--sea-paper)').style('stroke', ink).style('stroke-width', 2);
+          const fs = Math.max(12, Math.min(16, rh * 0.5));
+          row.append('text').attr('class', 'hand').attr('x', 16).attr('y', (rh - 7) / 2 + fs * 0.32).attr('text-anchor', 'middle').style('font-size', (fs - 3) + 'px').text(d.rank);
+          row.append('text').attr('class', 'hand').attr('x', 36).attr('y', (rh - 7) / 2 + fs * 0.36).style('font-size', fs + 'px').text(d.item);
+          if (W >= 340) row.append('text').attr('x', bw - 10).attr('y', (rh - 7) / 2 + 4).attr('text-anchor', 'end').style('font-size', '11px').text(d.group);
+        });
+      } else if (step === 3 || step === 4) {
+        const D = step === 3 ? C : K;
+        if (fail(D)) { title('資料載入失敗'); return; }
+        title(step === 3 ? '各縣市清除的海廢' : '海岸上調查到的廢棄物', '單位：公噸');
+        const rows = D.status === 'ok' ? D.data.map((d) => ({ year: d.year, tons: +d.tons })) : [];
+        const mg = { t: 100, r: 20, b: 42, l: 20 };
+        const x = d3.scaleBand().domain(rows.map((d) => d.year)).range([mg.l, W - mg.r]).padding(step === 3 ? 0.28 : 0.42);
+        const y = d3.scaleLinear().domain([0, d3.max(rows, (d) => d.tons) || 1]).nice().range([H - mg.b, mg.t]);
+        g.append('path').attr('class', 'sea-rough').attr('d', `M${mg.l - 6} ${H - mg.b}H${W - mg.r + 6}`).style('stroke', ink).style('stroke-width', 2.5);
+        const bars = g.append('g').attr('class', 'sea-rough').selectAll('rect').data(rows).join('rect')
+          .attr('x', (d) => x(d.year)).attr('width', x.bandwidth()).attr('rx', 4)
+          .style('fill', (d, i) => step === 4 && i === 0 ? 'url(#sea-hatch-c)' : (step === 3 ? 'url(#sea-hatch-b)' : 'url(#sea-hatch-a)'))
+          .style('stroke', ink).style('stroke-width', 2.5)
+          .attr('y', H - mg.b).attr('height', 0)
+          .on('pointermove pointerdown', (ev, d) => showTip(ev, `${d.year} 年：${seaFmt(d.tons)} 公噸`))
+          .on('pointerleave', () => tip.attr('hidden', ''));
+        bars.transition().duration(dur).attr('y', (d) => y(d.tons)).attr('height', (d) => H - mg.b - y(d.tons));
+        g.selectAll('text.v').data(rows).join('text').attr('class', 'v hand').attr('text-anchor', 'middle')
+          .attr('x', (d) => x(d.year) + x.bandwidth() / 2).attr('y', (d) => y(d.tons) - 10)
+          .style('font-size', '16px').style('font-variant-numeric', 'tabular-nums').text((d) => seaFmt(d.tons));
+        g.selectAll('text.yr').data(rows).join('text').attr('class', 'yr hand').attr('text-anchor', 'middle')
+          .attr('x', (d) => x(d.year) + x.bandwidth() / 2).attr('y', H - mg.b + 24).style('font-size', '15px').text((d) => d.year);
+        if (step === 4 && rows.length === 2) {
+          const drop = dash.data('coast_drop');
+          const a = rows[0], b = rows[1];
+          const x1 = x(a.year) + x.bandwidth() + 6, y1 = y(a.tons) + 18;
+          const x2 = x(b.year) + x.bandwidth() / 2, y2 = y(b.tons) - 34;
+          g.append('path').attr('class', 'sea-rough').attr('d', `M${x1} ${y1} Q${(x1 + x2) / 2} ${y1 - 30} ${x2 - 8} ${y2 - 30}`)
+            .style('fill', 'none').style('stroke', ink).style('stroke-width', 2.5).style('stroke-dasharray', '6 6');
+          g.append('ellipse').attr('class', 'sea-rough').attr('cx', x2).attr('cy', y2 - 40).attr('rx', Math.min(50, W - mg.r - x2 - 2)).attr('ry', 22)
+            .style('fill', 'var(--sea-yellow)').style('stroke', ink).style('stroke-width', 2.5);
+          g.append('text').attr('class', 'hand').attr('x', x2).attr('y', y2 - 33).attr('text-anchor', 'middle').style('font-size', '22px')
+            .style('fill', '#3a2a00').text(drop.status === 'ok' && drop.data != null ? `−${drop.data}%` : '');
+        }
+      } else if (step === 5) {
+        if (fail(F)) { title('資料載入失敗'); return; }
+        title('撿起來之後');
+        const items = [
+          ['nets_products', '公噸', '廢漁網浮具再製成產品', coral],
+          ['recycled_oca', '公噸', '海保署回收海廢與廢漁網', blue],
+          ['floats', '顆', '補助改良性浮具', green],
+        ];
+        const top = 80, bh = (H - top - 16) / 3;
+        items.forEach(([k, u, l, col], i) => {
+          const y = top + i * bh;
+          const fs = Math.min(48, W / 9);
+          g.append('text').attr('class', 'hand').attr('x', 20).attr('y', y + bh * 0.48).style('font-size', fs + 'px').style('fill', col).text(seaFmt(fact(k)));
+          g.append('path').attr('class', 'sea-rough').attr('d', `M20 ${y + bh * 0.48 + 8} q${W * 0.12} -6 ${W * 0.4} 0`)
+            .style('fill', 'none').style('stroke', col).style('stroke-width', 3).style('stroke-linecap', 'round');
+          g.append('text').attr('class', 'hand').attr('x', 22).attr('y', y + bh * 0.48 + 30).style('font-size', '15px').text(`${u} · ${l}`);
+        });
+      }
+    },
+  });
+</script>
